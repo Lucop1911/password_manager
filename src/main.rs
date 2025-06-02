@@ -106,7 +106,21 @@ impl eframe::App for PasswordManagerApp {
         } else {
             ctx.set_visuals(egui::Visuals::light());
         }
-        
+
+        let mut style = (*ctx.style()).clone();
+        style.spacing.item_spacing = egui::vec2(14.0, 15.0);
+        style.spacing.button_padding = egui::vec2(10.0, 8.0);
+        style.text_styles = [
+            (egui::TextStyle::Heading, egui::FontId::new(20.0, egui::FontFamily::Proportional)),
+            (egui::TextStyle::Body, egui::FontId::new(16.0, egui::FontFamily::Proportional)),
+            (egui::TextStyle::Button, egui::FontId::new(16.0, egui::FontFamily::Proportional)),
+            (egui::TextStyle::Monospace, egui::FontId::new(14.0, egui::FontFamily::Monospace)),
+            (egui::TextStyle::Small, egui::FontId::new(12.0, egui::FontFamily::Proportional)),
+        ]
+        .into();
+        ctx.set_style(style);
+        ctx.set_pixels_per_point(1.05);
+
         egui::CentralPanel::default().show(ctx, |ui| {
             // Bottone per il cambio del tema
             ui.horizontal(|ui| {
