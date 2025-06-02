@@ -335,8 +335,8 @@ impl PasswordManagerApp {
 
 // Funzioni di utilità
 fn generate_salt() -> String {
-    let mut rng = rand::thread_rng();
-    let salt: [u8; 16] = rng.gen();
+    let mut rng = rand::rng();
+    let salt: [u8; 16] = rng.random();
     base64::engine::general_purpose::STANDARD.encode(salt)
 }
 
@@ -378,6 +378,6 @@ fn main() -> Result<(), eframe::Error> {
     eframe::run_native(
         "Password Manager",
         options,
-        Box::new(|_cc| Box::new(PasswordManagerApp::default())),
+        Box::new(|_cc| Ok(Box::new(PasswordManagerApp::default()))),
     )
 }
