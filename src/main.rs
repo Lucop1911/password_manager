@@ -26,6 +26,7 @@ struct PasswordEntry {
 struct AppData {
     user: Option<UserData>,
     passwords: Vec<PasswordEntry>,
+    dark_mode: Option<bool>,
 }
 
 #[derive(PartialEq)]
@@ -58,6 +59,12 @@ struct PasswordManagerApp {
     // Messaggi di errore/successo
     message: String,
     message_color: egui::Color32,
+    
+    // Tema
+    dark_mode: bool,
+    
+    // Ricerca
+    search_query: String,
 }
 
 impl Default for PasswordManagerApp {
@@ -68,6 +75,8 @@ impl Default for PasswordManagerApp {
         } else {
             AppState::Registration
         };
+        
+        let dark_mode = app_data.dark_mode.unwrap_or(true);
         
         Self {
             state,
@@ -83,17 +92,38 @@ impl Default for PasswordManagerApp {
             new_entry_password: String::new(),
             message: String::new(),
             message_color: egui::Color32::GREEN,
+            dark_mode,
+            search_query: String::new(),
         }
     }
 }
 
 impl eframe::App for PasswordManagerApp {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
+        // Cambia tema
+        if self.dark_mode {
+            ctx.set_visuals(egui::Visuals::dark());
+        } else {
+            ctx.set_visuals(egui::Visuals::light());
+        }
+        
         egui::CentralPanel::default().show(ctx, |ui| {
+            // Bottone per il cambio del tema
+            ui.horizontal(|ui| {
+                ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                    let theme_text = if self.dark_mode { "🌙 Scuro" } else { "☀ Chiaro" };
+                    if ui.button(theme_text).clicked() {
+                        self.toggle_theme();
+                    }
+                });
+            });
+            
+            ui.separator();
+            
             match self.state {
                 AppState::Registration => self.show_registration(ui),
                 AppState::Login => self.show_login(ui),
-                AppState::Main => self.show_main(ui),
+                AppState::Main => self.show_main(ctx, ui),
             }
             
             // Mostra messaggi
@@ -106,6 +136,12 @@ impl eframe::App for PasswordManagerApp {
 }
 
 impl PasswordManagerApp {
+    fn toggle_theme(&mut self) {
+        self.dark_mode = !self.dark_mode;
+        self.app_data.dark_mode = Some(self.dark_mode);
+        save_data(&self.app_data);
+    }
+    
     fn show_registration(&mut self, ui: &mut egui::Ui) {
         ui.heading("🔐 Registrazione Password Manager");
         ui.separator();
@@ -157,7 +193,7 @@ impl PasswordManagerApp {
         }
     }
     
-    fn show_main(&mut self, ui: &mut egui::Ui) {
+    fn show_main(&mut self, ctx: &egui::Context, ui: &mut egui::Ui) {
         ui.heading("🔐 Le tue Password");
         
         // Pulsante logout
@@ -200,34 +236,90 @@ impl PasswordManagerApp {
         // Lista delle password salvate
         ui.heading("Password salvate");
         
-        if self.app_data.passwords.is_empty() {
-            ui.label("Nessuna password salvata ancora.");
+        // Barra di ricerca
+        ui.horizontal(|ui| {
+            ui.label("🔍 Cerca:");
+            ui.text_edit_singleline(&mut self.search_query);
+            if ui.button("❌").clicked() {
+                self.search_query.clear();
+            }
+        });
+        
+        ui.separator();
+        
+        // Filtro i nomi dei servizi
+        let filtered_indices: Vec<usize> = self.app_data.passwords
+            .iter()
+            .enumerate()
+            .filter(|(_, entry)| {
+                if self.search_query.is_empty() {
+                    true
+                } else {
+                    entry.name.to_lowercase().contains(&self.search_query.to_lowercase())
+                }
+            })
+            .map(|(index, _)| index)
+            .collect();
+        
+        if filtered_indices.is_empty() {
+            if self.search_query.is_empty() {
+                ui.label("Nessuna password salvata ancora.");
+            } else {
+                ui.label(format!("Nessuna password trovata per '{}'", self.search_query));
+            }
         } else {
-            // Creiamo una copia per evitare problemi di borrowing
-            let passwords_to_remove: Vec<usize> = Vec::new();
-            let mut remove_indices = passwords_to_remove;
-            
-            for (index, entry) in self.app_data.passwords.iter().enumerate() {
-                ui.group(|ui| {
-                    ui.horizontal(|ui| {
-                        ui.vertical(|ui| {
-                            ui.strong(&entry.name);
-                            ui.label(format!("Username: {}", entry.username));
-                            ui.label(format!("Password: {}", entry.password));
-                        });
-                        
-                        ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                            if ui.button("🗑").clicked() {
-                                remove_indices.push(index);
-                            }
-                        });
-                    });
-                });
+            // Numero dei risultati
+            if !self.search_query.is_empty() {
+                ui.label(format!("Trovate {} password per '{}'", filtered_indices.len(), self.search_query));
                 ui.separator();
             }
             
-            // Rimuovi le password selezionate
-            for &index in remove_indices.iter().rev() {
+            // Indici da rimuovere fuori dall'area di visualizzazione
+            let mut remove_indices = Vec::new();
+            
+            // Area per gli account (scrollable)
+            egui::ScrollArea::vertical()
+                .max_height(300.0) 
+                .show(ui, |ui| {
+                    for &index in &filtered_indices {
+                        if let Some(entry) = self.app_data.passwords.get(index) {
+                            ui.group(|ui| {
+                                ui.horizontal(|ui| {
+                                    ui.vertical(|ui| {
+                                        ui.strong(&entry.name);
+                                        ui.label(format!("Username: {}", entry.username));
+                                        ui.label(format!("Password: {}", entry.password));
+                                    });
+                                    
+                                    ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                                        // Bottone cancella account
+                                        if ui.button("🗑").clicked() {
+                                            remove_indices.push(index);
+                                        }
+                                        // Copia Password
+                                        if ui.button("📋").clicked() {
+                                            ctx.copy_text(entry.password.clone());
+                                            self.message = format!("Password per '{}' copiata negli appunti!", entry.name);
+                                            self.message_color = egui::Color32::GREEN;
+                                        }
+
+                                        // Copia Username
+                                        if ui.button("👤").clicked() {
+                                            ctx.copy_text(entry.username.clone()); // ✅ use ctx.copy_text instead of deprecated copied_text
+                                            self.message = format!("Username per '{}' copiato negli appunti!", entry.name);
+                                            self.message_color = egui::Color32::GREEN;
+                                        }
+                                    });
+                                });
+                            });
+                            ui.separator();
+                        }
+                    }
+                });
+            
+            // Rimozione elementi selezionati (al contrario per tenere gli indici)
+            remove_indices.sort_by(|a, b| b.cmp(a));
+            for &index in &remove_indices {
                 self.app_data.passwords.remove(index);
                 save_data(&self.app_data);
                 self.message = "Password eliminata!".to_string();
@@ -354,11 +446,13 @@ fn load_data() -> AppData {
         serde_json::from_str(&data).unwrap_or_else(|_| AppData {
             user: None,
             passwords: Vec::new(),
+            dark_mode: Some(true), // Tema scuro di default
         })
     } else {
         AppData {
             user: None,
             passwords: Vec::new(),
+            dark_mode: Some(true),
         }
     }
 }
