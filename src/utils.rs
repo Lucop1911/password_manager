@@ -9,6 +9,7 @@ use aes_gcm::{
     Aes256Gcm, Nonce, Key
 };
 use argon2::{Argon2, PasswordHasher, password_hash::SaltString};
+use rfd::{MessageDialog, MessageButtons, MessageLevel, MessageDialogResult};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct UserData {
@@ -127,4 +128,13 @@ pub fn save_data(data: &AppData) {
     if let Ok(json) = serde_json::to_string_pretty(data) {
         let _ = fs::write(DATA_FILE, json);
     }
+}
+
+pub fn notifica_conferma() -> bool {
+    MessageDialog::new()
+        .set_level(MessageLevel::Info)
+        .set_title("Conferma Azione")
+        .set_description("Sei sicuro di voler continuare? Questa azione non può essere annullata.")
+        .set_buttons(MessageButtons::YesNo)
+        .show() == MessageDialogResult::Yes
 }
