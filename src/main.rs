@@ -398,10 +398,8 @@ impl PasswordManagerApp {
                                             // Azioni
                                             ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
 
-                                                if ui.button("🗑").on_hover_text("Elimina").clicked() {
-                                                    if notifica_conferma() {
-                                                        remove_indices.push(index);
-                                                    }   
+                                                if ui.button("🗑").on_hover_text("Elimina").clicked() && notifica_conferma() {
+                                                    remove_indices.push(index);
                                                 }
                                                 
                                                 // Copia password
