@@ -135,6 +135,6 @@ pub fn notifica_conferma() -> bool {
         .set_level(MessageLevel::Info)
         .set_title("Conferma Azione")
         .set_description("Sei sicuro di voler continuare? Questa azione non può essere annullata.")
-        .set_buttons(MessageButtons::YesNo)
+        .set_buttons(MessageButtons::OkCancelCustom(String::from("Si"), String::from("No")))
         .show() == MessageDialogResult::Yes
 }
