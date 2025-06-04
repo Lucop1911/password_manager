@@ -38,3 +38,14 @@ FileDescription = "Secure Password Manager"
 LegalCopyright = "Copyright (c) 2025"
 ProductVersion = "1.0.0"
 FileVersion = "1.0.0"
+
+
+[package.metadata.bundle]
+name = "Password Manager"
+identifier = "com.luca.password-manager"
+icon = "./icon.ico"
+version = "1.0.0"
+copyright = "Copyright (c) 2025"
+category = "Utility"
+short_description = "Secure Password Manager"
+long_description = "A secure password manager built with Rust and egui"
