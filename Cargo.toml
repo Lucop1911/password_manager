@@ -2,6 +2,10 @@
 name = "password_manager"
 version = "0.1.0"
 edition = "2024"
+description = "A secure password manager built with Rust and egui"
+authors = ["Luca <lucop1911@gmail.com>"]
+license = "MIT"
+repository = "https://github.com/Lucop1911/password_manager"
 
 [dependencies]
 eframe = "0.31.1"
@@ -14,3 +18,23 @@ rand = "0.9.1"
 aes-gcm = "0.10"
 argon2 = "0.5"
 rfd = "0.15.3"
+
+[target.'cfg(windows)'.build-dependencies]
+winres = "0.1"
+
+[profile.release]
+opt-level = "s"
+lto = true
+codegen-units = 1
+panic = "abort"
+strip = true
+
+[build-dependencies]
+winres = "0.1"
+
+[package.metadata.winres]
+ProductName = "Password Manager"
+FileDescription = "Secure Password Manager"
+LegalCopyright = "Copyright (c) 2025"
+ProductVersion = "1.0.0"
+FileVersion = "1.0.0"
