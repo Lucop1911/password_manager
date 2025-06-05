@@ -24,7 +24,7 @@ jobs:
         run: cargo build --release --target x86_64-pc-windows-msvc
         
       - name: Azure Login (OIDC - Recommended)
-        if: ${{ secrets.AZURE_CLIENT_ID != '' }}
+        if: ${{ vars.USE_OIDC == 'true' && secrets.AZURE_CLIENT_ID }}
         uses: azure/login@v2
         with:
           client-id: ${{ secrets.AZURE_CLIENT_ID }}
@@ -33,7 +33,7 @@ jobs:
           
       # Alternative: Traditional secret-based login
       - name: Azure Login (Client Secret)
-        if: ${{ secrets.AZURE_CLIENT_ID != '' && secrets.AZURE_CLIENT_SECRET != '' }}
+        if: ${{ secrets.AZURE_CLIENT_ID && secrets.AZURE_CLIENT_SECRET }}
         uses: azure/login@v2
         with:
           client-id: ${{ secrets.AZURE_CLIENT_ID }}
@@ -41,7 +41,7 @@ jobs:
           client-secret: ${{ secrets.AZURE_CLIENT_SECRET }}
           
       - name: Sign with Azure Key Vault
-        if: ${{ secrets.AZURE_CLIENT_ID != '' }}
+        if: ${{ secrets.AZURE_CLIENT_ID }}
         shell: powershell
         run: |
           # Install AzureSignTool
@@ -81,3 +81,12 @@ jobs:
           name: windows-msvc-binary-signed
           path: target/x86_64-pc-windows-msvc/release/*.exe
           retention-days: 30
+          
+      - name: Create Release (on main branch)
+        if: github.ref == 'refs/heads/main'
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: v${{ github.run_number }}
+          name: Release v${{ github.run_number }}
+          files: target/x86_64-pc-windows-msvc/release/*.exe
+          generate_release_notes: true
