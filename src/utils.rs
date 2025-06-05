@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::fs;
-use std::path::Path;
+use std::path::{PathBuf};
 use base64::Engine;
 use rand::Rng;
 use aes_gcm::{
@@ -34,7 +34,18 @@ pub struct AppData {
     pub dark_mode: Option<bool>,
 }
 
-const DATA_FILE: &str = "password_data.json";
+fn get_data_file_path() -> PathBuf {
+    let home_dir = dirs::home_dir().expect("Unable to find home directory");
+    let app_dir = home_dir.join("p_manager");
+    
+   if !app_dir.exists() {
+        if let Err(e) = fs::create_dir_all(&app_dir) {
+            return PathBuf::from("password_data.json");
+        }
+    }
+    
+    app_dir.join("password_data.json")
+}
 
 pub fn generate_salt() -> String {
     let mut rng = rand::rng();
@@ -108,8 +119,10 @@ pub fn decrypt_password(entry: &PasswordEntry, key_bytes: &[u8; 32]) -> Result<S
 }
 
 pub fn load_data() -> AppData {
-    if Path::new(DATA_FILE).exists() {
-        let data = fs::read_to_string(DATA_FILE).unwrap_or_default();
+    let data_file = get_data_file_path();
+    
+    if data_file.exists() {
+        let data = fs::read_to_string(&data_file).unwrap_or_default();
         serde_json::from_str(&data).unwrap_or_else(|_| AppData {
             user: None,
             passwords: Vec::new(),
@@ -125,8 +138,10 @@ pub fn load_data() -> AppData {
 }
 
 pub fn save_data(data: &AppData) {
+    let data_file = get_data_file_path();
+    
     if let Ok(json) = serde_json::to_string_pretty(data) {
-        let _ = fs::write(DATA_FILE, json);
+        let _ = fs::write(data_file, json);
     }
 }
 
