@@ -39,7 +39,7 @@ fn get_data_file_path() -> PathBuf {
     let app_dir = home_dir.join("p_manager");
     
    if !app_dir.exists() {
-        if let Err(e) = fs::create_dir_all(&app_dir) {
+        if let Err(_e) = fs::create_dir_all(&app_dir) {
             return PathBuf::from("password_data.json");
         }
     }
