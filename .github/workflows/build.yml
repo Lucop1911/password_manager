@@ -11,6 +11,13 @@ jobs:
       contents: read
       id-token: write  # Required for OIDC authentication
     
+    env:
+      AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+      AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+      AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+      AZURE_KEY_VAULT_URL: ${{ secrets.AZURE_KEY_VAULT_URL }}
+      AZURE_CERTIFICATE_NAME: ${{ secrets.AZURE_CERTIFICATE_NAME }}
+    
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -23,17 +30,8 @@ jobs:
       - name: Build
         run: cargo build --release --target x86_64-pc-windows-msvc
         
-      - name: Azure Login (OIDC - Recommended)
-        if: ${{ vars.USE_OIDC == 'true' && secrets.AZURE_CLIENT_ID }}
-        uses: azure/login@v2
-        with:
-          client-id: ${{ secrets.AZURE_CLIENT_ID }}
-          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-          
-      # Alternative: Traditional secret-based login
-      - name: Azure Login (Client Secret)
-        if: ${{ secrets.AZURE_CLIENT_ID && secrets.AZURE_CLIENT_SECRET }}
+      - name: Azure Login
+        if: ${{ env.AZURE_CLIENT_ID != '' }}
         uses: azure/login@v2
         with:
           client-id: ${{ secrets.AZURE_CLIENT_ID }}
@@ -41,7 +39,7 @@ jobs:
           client-secret: ${{ secrets.AZURE_CLIENT_SECRET }}
           
       - name: Sign with Azure Key Vault
-        if: ${{ secrets.AZURE_CLIENT_ID }}
+        if: ${{ env.AZURE_CLIENT_ID != '' }}
         shell: powershell
         run: |
           # Install AzureSignTool
