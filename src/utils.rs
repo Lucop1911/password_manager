@@ -40,11 +40,11 @@ fn get_data_file_path() -> PathBuf {
     
    if !app_dir.exists() {
         if let Err(_e) = fs::create_dir_all(&app_dir) {
-            return PathBuf::from("password_data.json");
+            return PathBuf::from("data.json");
         }
     }
     
-    app_dir.join("password_data.json")
+    app_dir.join("data.json")
 }
 
 pub fn generate_salt() -> String {
