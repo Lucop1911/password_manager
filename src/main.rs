@@ -262,9 +262,14 @@ impl PasswordManagerApp {
     }
     
     fn show_main(&mut self, ctx: &egui::Context, ui: &mut egui::Ui) {
-        ui.horizontal(|ui| {
+    ui.allocate_ui_with_layout(
+        ui.available_size(),
+        egui::Layout::left_to_right(egui::Align::TOP),
+        |ui| {
+            // Pannello a sinistra
             ui.vertical(|ui| {
                 ui.set_min_width(360.0);
+                ui.set_max_width(360.0);
                 
                 egui::Frame::new()
                     .fill(ui.visuals().faint_bg_color)
@@ -301,10 +306,13 @@ impl PasswordManagerApp {
                             }
                         });
                     });
+                
+                ui.allocate_space(egui::vec2(ui.available_width(), ui.available_height()));
             });
             
             ui.separator();
             
+            // Pannello a destra
             ui.vertical(|ui| {
                 ui.horizontal(|ui| {
                     ui.strong("🗂 Le tue Password");
@@ -320,7 +328,6 @@ impl PasswordManagerApp {
                 
                 ui.add_space(10.0);
                 
-                // Filtra passwords
                 let filtered_entries: Vec<(usize, &PasswordEntry)> = self.app_data.passwords
                     .iter()
                     .enumerate()
@@ -339,11 +346,11 @@ impl PasswordManagerApp {
                     ui.add_space(5.0);
                 }
                 
-                let available_height = ui.available_height();
+                let remaining_space = ui.available_size();
                 
                 if filtered_entries.is_empty() {
                     ui.allocate_ui_with_layout(
-                        egui::vec2(ui.available_width(), available_height),
+                        remaining_space,
                         egui::Layout::centered_and_justified(egui::Direction::TopDown),
                         |ui| {
                             if self.search_query.is_empty() {
@@ -363,9 +370,11 @@ impl PasswordManagerApp {
                         .map(|(index, entry)| (index, entry.clone()))
                         .collect();
                     
+                    // Sezione mostra password
                     egui::ScrollArea::vertical()
                         .auto_shrink([false, false])
-                        .max_height(available_height)
+                        .min_scrolled_height(remaining_space.y)
+                        .max_height(remaining_space.y)
                         .show(ui, |ui| {
                             for (index, entry_clone) in entries_to_show {
                                 egui::Frame::new()
@@ -375,7 +384,6 @@ impl PasswordManagerApp {
                                     .stroke(egui::Stroke::new(1.0, ui.visuals().widgets.noninteractive.bg_stroke.color))
                                     .show(ui, |ui| {
                                         ui.horizontal(|ui| {
-
                                             ui.vertical(|ui| {
                                                 ui.horizontal(|ui| {
                                                     ui.strong(&entry_clone.name);
@@ -397,14 +405,11 @@ impl PasswordManagerApp {
                                                 }
                                             });
                                             
-                                            // Azioni
                                             ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-
                                                 if ui.button("🗑").on_hover_text("Elimina").clicked() && notifica_conferma() {
                                                     remove_indices.push(index);
                                                 }
                                                 
-                                                // Copia password
                                                 if ui.button("📋").on_hover_text("Copia password").clicked() {
                                                     if let Some(key) = &self.encryption_key {
                                                         match decrypt_password(&entry_clone, key) {
@@ -424,7 +429,6 @@ impl PasswordManagerApp {
                                                     }
                                                 }
                                                 
-                                                // Copia user
                                                 if ui.button("👤").on_hover_text("Copia username").clicked() {
                                                     ctx.copy_text(entry_clone.username.clone());
                                                     self.message = format!("Username di '{}' copiato!", entry_clone.name);
@@ -438,7 +442,7 @@ impl PasswordManagerApp {
                             }
                         });
                     
-                    // Rimuovi passwords
+                    // Rimuovi password
                     remove_indices.sort_by(|a, b| b.cmp(a));
                     for &index in &remove_indices {
                         let removed_entry = self.app_data.passwords.remove(index);
@@ -448,8 +452,9 @@ impl PasswordManagerApp {
                     }
                 }
             });
-        });
-    }
+        }
+    );
+}
     
     fn handle_registration(&mut self) {
         if self.reg_username.is_empty() || self.reg_password.is_empty() {
