@@ -146,10 +146,12 @@ pub fn save_data(data: &AppData) {
 }
 
 pub fn notifica_conferma() -> bool {
-    MessageDialog::new()
-        .set_level(MessageLevel::Info)
-        .set_title("Conferma Azione")
-        .set_description("Sei sicuro di voler continuare? Questa azione non può essere annullata.")
-        .set_buttons(MessageButtons::OkCancelCustom(String::from("Si"), String::from("No")))
-        .show() == MessageDialogResult::Yes
+    let result = MessageDialog::new()
+        .set_level(MessageLevel::Warning)
+        .set_title("Conferma Eliminazione")
+        .set_description("Sei sicuro di voler eliminare questa password? Questa azione non può essere annullata.")
+        .set_buttons(MessageButtons::YesNo)
+        .show();
+    
+    result == MessageDialogResult::Yes
 }

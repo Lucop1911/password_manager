@@ -406,10 +406,13 @@ impl PasswordManagerApp {
                                             });
                                             
                                             ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                                                if ui.button("🗑").on_hover_text("Elimina").clicked() && notifica_conferma() {
-                                                    remove_indices.push(index);
-                                                }
-                                                
+
+                                                if ui.button("🗑").on_hover_text("Elimina").clicked() {
+                                                    if notifica_conferma() {
+                                                        remove_indices.push(index);
+                                                    }
+                                                }    
+
                                                 if ui.button("📋").on_hover_text("Copia password").clicked() {
                                                     if let Some(key) = &self.encryption_key {
                                                         match decrypt_password(&entry_clone, key) {
@@ -443,12 +446,27 @@ impl PasswordManagerApp {
                         });
                     
                     // Rimuovi password
-                    remove_indices.sort_by(|a, b| b.cmp(a));
-                    for &index in &remove_indices {
-                        let removed_entry = self.app_data.passwords.remove(index);
-                        save_data(&self.app_data);
-                        self.message = format!("Password '{}' eliminata!", removed_entry.name);
-                        self.message_color = egui::Color32::YELLOW;
+                    if !remove_indices.is_empty() {
+                        
+                        remove_indices.sort_by(|a, b| b.cmp(a));
+                        
+                        let mut removed_names = Vec::new();
+                        for &index in &remove_indices {
+                            if index < self.app_data.passwords.len() {
+                                let removed_entry = self.app_data.passwords.remove(index);
+                                removed_names.push(removed_entry.name);
+                            }
+                        }
+                        
+                        if !removed_names.is_empty() {
+                            save_data(&self.app_data);
+                            if removed_names.len() == 1 {
+                                self.message = format!("Password '{}' eliminata!", removed_names[0]);
+                            } else {
+                                self.message = format!("{} password eliminate!", removed_names.len());
+                            }
+                            self.message_color = egui::Color32::YELLOW;
+                        }
                     }
                 }
             });
