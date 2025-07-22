@@ -295,6 +295,7 @@ impl PasswordManagerApp {
                                 
                                 ui.label("🔑 Password");
                                 ui.add(egui::TextEdit::singleline(&mut self.new_entry_password)
+                                    .password(true)
                                     .hint_text("password sicura")
                                     .min_size(egui::vec2(230.0, 25.0)));
                                 ui.add_space(15.0);
@@ -418,7 +419,7 @@ impl PasswordManagerApp {
                                                         match decrypt_password(&entry_clone, key) {
                                                             Ok(decrypted_password) => {
                                                                 ctx.copy_text(decrypted_password);
-                                                                self.message = format!("Password di '{}' copiata!", entry_clone.name);
+                                                                self.message = format!("La password di '{}' è stata copiata!", entry_clone.name);
                                                                 self.message_color = egui::Color32::GREEN;
                                                             }
                                                             Err(_) => {
@@ -434,7 +435,7 @@ impl PasswordManagerApp {
                                                 
                                                 if ui.button("👤").on_hover_text("Copia username").clicked() {
                                                     ctx.copy_text(entry_clone.username.clone());
-                                                    self.message = format!("Username di '{}' copiato!", entry_clone.name);
+                                                    self.message = format!("L'username di '{}' è stato copiato!", entry_clone.name);
                                                     self.message_color = egui::Color32::GREEN;
                                                 }
                                             });
@@ -461,11 +462,11 @@ impl PasswordManagerApp {
                         if !removed_names.is_empty() {
                             save_data(&self.app_data);
                             if removed_names.len() == 1 {
-                                self.message = format!("Password '{}' eliminata!", removed_names[0]);
+                                self.message = format!("La password di '{}' è stata eliminata!", removed_names[0]);
                             } else {
                                 self.message = format!("{} password eliminate!", removed_names.len());
                             }
-                            self.message_color = egui::Color32::YELLOW;
+                            self.message_color = egui::Color32::RED;
                         }
                     }
                 }
