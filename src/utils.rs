@@ -13,8 +13,8 @@ use rfd::{MessageDialog, MessageButtons, MessageLevel, MessageDialogResult};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct UserData {
-    pub username: String,
-    pub password_hash: String,
+    pub u: String,
+    pub p_h: String,
     pub salt: String,
     pub key_salt: String,
 }
@@ -22,15 +22,15 @@ pub struct UserData {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PasswordEntry {
     pub name: String,
-    pub username: String,
-    pub encrypted_password: String,
+    pub u: String,
+    pub e_c: String,
     pub nonce: String,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct AppData {
     pub user: Option<UserData>,
-    pub passwords: Vec<PasswordEntry>,
+    pub ps: Vec<PasswordEntry>,
     pub dark_mode: Option<bool>,
 }
 
@@ -106,7 +106,7 @@ pub fn decrypt_password(entry: &PasswordEntry, key_bytes: &[u8; 32]) -> Result<S
     let key = Key::<Aes256Gcm>::from_slice(key_bytes);
     let cipher = Aes256Gcm::new(key);
     
-    let ciphertext = base64::engine::general_purpose::STANDARD.decode(&entry.encrypted_password)
+    let ciphertext = base64::engine::general_purpose::STANDARD.decode(&entry.e_c)
         .map_err(|e| format!("Base64 decode error: {:?}", e))?;
     let nonce_bytes = base64::engine::general_purpose::STANDARD.decode(&entry.nonce)
         .map_err(|e| format!("Nonce decode error: {:?}", e))?;
@@ -125,13 +125,13 @@ pub fn load_data() -> AppData {
         let data = fs::read_to_string(&data_file).unwrap_or_default();
         serde_json::from_str(&data).unwrap_or_else(|_| AppData {
             user: None,
-            passwords: Vec::new(),
+            ps: Vec::new(),
             dark_mode: Some(true),
         })
     } else {
         AppData {
             user: None,
-            passwords: Vec::new(),
+            ps: Vec::new(),
             dark_mode: Some(true),
         }
     }

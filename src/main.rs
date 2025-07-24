@@ -119,7 +119,7 @@ impl eframe::App for PasswordManagerApp {
                             self.logout();
                         }
                         ui.label(format!("👤 {}", 
-                            self.current_user.as_ref().unwrap().username));
+                            self.current_user.as_ref().unwrap().u));
                     }
                 });
             });
@@ -329,7 +329,7 @@ impl PasswordManagerApp {
                 
                 ui.add_space(10.0);
                 
-                let filtered_entries: Vec<(usize, &PasswordEntry)> = self.app_data.passwords
+                let filtered_entries: Vec<(usize, &PasswordEntry)> = self.app_data.ps
                     .iter()
                     .enumerate()
                     .filter(|(_, entry)| {
@@ -337,7 +337,7 @@ impl PasswordManagerApp {
                             true
                         } else {
                             entry.name.to_lowercase().contains(&self.search_query.to_lowercase()) ||
-                            entry.username.to_lowercase().contains(&self.search_query.to_lowercase())
+                            entry.u.to_lowercase().contains(&self.search_query.to_lowercase())
                         }
                     })
                     .collect();
@@ -389,7 +389,7 @@ impl PasswordManagerApp {
                                                 ui.horizontal(|ui| {
                                                     ui.strong(&entry_clone.name);
                                                     ui.label("•");
-                                                    ui.weak(&entry_clone.username);
+                                                    ui.weak(&entry_clone.u);
                                                 });
                                                 
                                                 if let Some(key) = &self.encryption_key {
@@ -434,7 +434,7 @@ impl PasswordManagerApp {
                                                 }
                                                 
                                                 if ui.button("👤").on_hover_text("Copia username").clicked() {
-                                                    ctx.copy_text(entry_clone.username.clone());
+                                                    ctx.copy_text(entry_clone.u.clone());
                                                     self.message = format!("L'username di '{}' è stato copiato!", entry_clone.name);
                                                     self.message_color = egui::Color32::GREEN;
                                                 }
@@ -453,8 +453,8 @@ impl PasswordManagerApp {
                         
                         let mut removed_names = Vec::new();
                         for &index in &remove_indices {
-                            if index < self.app_data.passwords.len() {
-                                let removed_entry = self.app_data.passwords.remove(index);
+                            if index < self.app_data.ps.len() {
+                                let removed_entry = self.app_data.ps.remove(index);
                                 removed_names.push(removed_entry.name);
                             }
                         }
@@ -497,14 +497,14 @@ impl PasswordManagerApp {
         // Genera salt per l'hash della password e per la derivazione della chiave
         let salt = generate_salt();
         let key_salt = generate_salt();
-        let password_hash = hash_password(&self.reg_password, &salt);
+        let p_h = hash_password(&self.reg_password, &salt);
         
         // Deriva la chiave di crittografia dalla password
         self.encryption_key = Some(derive_key(&self.reg_password, &key_salt));
         
         let user_data = UserData {
-            username: self.reg_username.clone(),
-            password_hash,
+            u: self.reg_username.clone(),
+            p_h,
             salt,
             key_salt,
         };
@@ -526,9 +526,9 @@ impl PasswordManagerApp {
     
     fn handle_login(&mut self) {
         if let Some(user) = &self.app_data.user {
-            let password_hash = hash_password(&self.login_password, &user.salt);
+            let p_h = hash_password(&self.login_password, &user.salt);
             
-            if self.login_username == user.username && password_hash == user.password_hash {
+            if self.login_username == user.u && p_h == user.p_h {
                 // Deriva la chiave di crittografia dalla password
                 self.encryption_key = Some(derive_key(&self.login_password, &user.key_salt));
                 
@@ -557,15 +557,15 @@ impl PasswordManagerApp {
         // Cripta la password
         if let Some(encryption_key) = &self.encryption_key {
             match encrypt_password(&self.new_entry_password, encryption_key) {
-                Ok((encrypted_password, nonce)) => {
+                Ok((e_c, nonce)) => {
                     let entry = PasswordEntry {
                         name: self.new_entry_name.clone(),
-                        username: self.new_entry_username.clone(),
-                        encrypted_password,
+                        u: self.new_entry_username.clone(),
+                        e_c,
                         nonce,
                     };
                     
-                    self.app_data.passwords.push(entry);
+                    self.app_data.ps.push(entry);
                     save_data(&self.app_data);
                     
                     self.message = "Password aggiunta con successo!".to_string();
