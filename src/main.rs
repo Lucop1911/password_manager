@@ -131,10 +131,10 @@ impl eframe::App for PasswordManagerApp {
                 ui.add_space(8.0);
                 ui.horizontal(|ui| {
                     let icon = match self.message_color {
-                        egui::Color32::RED => "⚠",
-                        egui::Color32::GREEN => "✓",
-                        egui::Color32::YELLOW => "ℹ",
-                        _ => "ℹ",
+                        egui::Color32::RED => "❌",
+                        egui::Color32::GREEN => "✔",
+                        egui::Color32::YELLOW => "🔸",
+                        _ => "🔸",
                     };
                     ui.colored_label(self.message_color, format!("{} {}", icon, &self.message));
                 });
@@ -316,7 +316,7 @@ impl PasswordManagerApp {
             // Pannello a destra
             ui.vertical(|ui| {
                 ui.horizontal(|ui| {
-                    ui.strong("🗂 Le tue Password");
+                    ui.strong("📃 Le tue Password");
                     ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                         if ui.button("❌").on_hover_text("Cancella ricerca").clicked() {
                             self.search_query.clear();
