@@ -13,24 +13,24 @@ use rfd::{MessageDialog, MessageButtons, MessageLevel, MessageDialogResult};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct UserData {
-    pub u: String,
-    pub p_h: String,
-    pub salt: String,
+    pub u: String, // Username
+    pub p_h: String, // Password hash
+    pub salt: String, 
     pub key_salt: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PasswordEntry {
     pub name: String,
-    pub u: String,
-    pub e_c: String,
+    pub u: String, // Username
+    pub e_c: String, // Encrypted password
     pub nonce: String,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct AppData {
     pub user: Option<UserData>,
-    pub ps: Vec<PasswordEntry>,
+    pub ps: Vec<PasswordEntry>, // Password salvate
     pub dark_mode: Option<bool>,
 }
 
