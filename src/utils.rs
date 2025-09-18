@@ -145,7 +145,7 @@ pub fn save_data(data: &AppData) {
     }
 }
 
-pub fn notifica_conferma() -> bool {
+pub fn confirm_notification() -> bool {
     let result = MessageDialog::new()
         .set_level(MessageLevel::Warning)
         .set_title("Conferma Eliminazione")

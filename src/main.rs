@@ -4,7 +4,7 @@ mod utils;
 
 use eframe::egui;
 use utils::{UserData, PasswordEntry, AppData, generate_salt, hash_password, derive_key, 
-           encrypt_password, decrypt_password, load_data, save_data, notifica_conferma};
+           encrypt_password, decrypt_password, load_data, save_data, confirm_notification};
 
 #[derive(PartialEq)]
 enum AppState {
@@ -409,7 +409,7 @@ impl PasswordManagerApp {
                                             ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
 
                                                 if ui.button("🗑").on_hover_text("Elimina").clicked() {
-                                                    if notifica_conferma() {
+                                                    if confirm_notification() {
                                                         remove_indices.push(index);
                                                     }
                                                 }    
