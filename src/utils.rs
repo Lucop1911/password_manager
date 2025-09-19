@@ -23,7 +23,7 @@ pub struct UserData {
 pub struct PasswordEntry {
     pub name: String,
     pub u: String, // Username
-    pub e_c: String, // Encrypted password
+    pub e_c: String, // Password crypt
     pub nonce: String,
 }
 
