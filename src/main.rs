@@ -578,7 +578,7 @@ impl PasswordManagerApp {
 
 fn main() -> Result<(), eframe::Error> {
     let options = eframe::NativeOptions {
-        viewport: egui::ViewportBuilder::default().with_inner_size([800.0, 600.0]).with_maximized(true),
+        viewport: egui::ViewportBuilder::default().with_maximized(true),
         ..Default::default()
     };
     
