@@ -108,7 +108,7 @@ impl eframe::App for PasswordManagerApp {
             self.shown_passwords.remove(&key);
         }
         
-        // Richiedi refresh ogni secondo per aggiornare i timer
+        // Richiedo il refresh ogni secondo per aggiornare i timer
         ctx.request_repaint_after(Duration::from_secs(1));
         
         // Cambia tema
