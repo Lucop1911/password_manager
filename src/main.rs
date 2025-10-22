@@ -94,6 +94,82 @@ impl Default for PasswordManagerApp {
     }
 }
 
+// Struttura per contenere le dimensioni responsive
+struct ResponsiveSizes {
+    heading_size: f32,
+    body_size: f32,
+    button_size: f32,
+    small_size: f32,
+    item_spacing: f32,
+    button_padding: egui::Vec2,
+    frame_margin: f32,
+    panel_width: f32,
+    text_field_width: f32,
+    button_height: f32,
+}
+
+impl ResponsiveSizes {
+    fn new(screen_width: f32) -> Self {
+        if screen_width < 600.0 {
+            // Schermi molto piccoli
+            Self {
+                heading_size: 18.0,
+                body_size: 12.0,
+                button_size: 12.0,
+                small_size: 10.0,
+                item_spacing: 4.0,
+                button_padding: egui::vec2(6.0, 4.0),
+                frame_margin: 8.0,
+                panel_width: 220.0,
+                text_field_width: 150.0,
+                button_height: 28.0,
+            }
+        } else if screen_width < 900.0 {
+            // Schermi piccoli
+            Self {
+                heading_size: 20.0,
+                body_size: 13.0,
+                button_size: 13.0,
+                small_size: 11.0,
+                item_spacing: 6.0,
+                button_padding: egui::vec2(8.0, 5.0),
+                frame_margin: 12.0,
+                panel_width: 280.0,
+                text_field_width: 180.0,
+                button_height: 30.0,
+            }
+        } else if screen_width < 1200.0 {
+            // Schermi medi
+            Self {
+                heading_size: 22.0,
+                body_size: 14.0,
+                button_size: 14.0,
+                small_size: 12.0,
+                item_spacing: 7.0,
+                button_padding: egui::vec2(10.0, 6.0),
+                frame_margin: 15.0,
+                panel_width: 320.0,
+                text_field_width: 200.0,
+                button_height: 32.0,
+            }
+        } else {
+            // Schermi grandi
+            Self {
+                heading_size: 26.0,
+                body_size: 16.0,
+                button_size: 16.0,
+                small_size: 13.0,
+                item_spacing: 8.0,
+                button_padding: egui::vec2(12.0, 8.0),
+                frame_margin: 20.0,
+                panel_width: 360.0,
+                text_field_width: 230.0,
+                button_height: 35.0,
+            }
+        }
+    }
+}
+
 impl eframe::App for PasswordManagerApp {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         // Pulizia delle password mostrate dopo 10 secondi
@@ -111,6 +187,10 @@ impl eframe::App for PasswordManagerApp {
         // Richiedo il refresh ogni secondo per aggiornare i timer
         ctx.request_repaint_after(Duration::from_secs(1));
         
+        // Ottieni le dimensioni dello schermo
+        let screen_width = ctx.screen_rect().width();
+        let sizes = ResponsiveSizes::new(screen_width);
+        
         // Cambia tema
         if self.dark_mode {
             ctx.set_visuals(egui::Visuals::dark());
@@ -119,21 +199,21 @@ impl eframe::App for PasswordManagerApp {
         }
 
         let mut style = (*ctx.style()).clone();
-        style.spacing.item_spacing = egui::vec2(8.0, 10.0);
-        style.spacing.button_padding = egui::vec2(12.0, 8.0);
-        style.spacing.indent = 20.0;
+        style.spacing.item_spacing = egui::vec2(sizes.item_spacing, sizes.item_spacing + 2.0);
+        style.spacing.button_padding = sizes.button_padding;
+        style.spacing.indent = sizes.item_spacing * 2.5;
         style.text_styles = [
-            (egui::TextStyle::Heading, egui::FontId::new(26.0, egui::FontFamily::Proportional)),
-            (egui::TextStyle::Body, egui::FontId::new(16.0, egui::FontFamily::Proportional)),
-            (egui::TextStyle::Button, egui::FontId::new(16.0, egui::FontFamily::Proportional)),
-            (egui::TextStyle::Monospace, egui::FontId::new(14.0, egui::FontFamily::Monospace)),
-            (egui::TextStyle::Small, egui::FontId::new(13.0, egui::FontFamily::Proportional)),
+            (egui::TextStyle::Heading, egui::FontId::new(sizes.heading_size, egui::FontFamily::Proportional)),
+            (egui::TextStyle::Body, egui::FontId::new(sizes.body_size, egui::FontFamily::Proportional)),
+            (egui::TextStyle::Button, egui::FontId::new(sizes.button_size, egui::FontFamily::Proportional)),
+            (egui::TextStyle::Monospace, egui::FontId::new(sizes.body_size - 2.0, egui::FontFamily::Monospace)),
+            (egui::TextStyle::Small, egui::FontId::new(sizes.small_size, egui::FontFamily::Proportional)),
         ]
         .into();
         ctx.set_style(style);
 
         egui::TopBottomPanel::top("header").show(ctx, |ui| {
-            ui.add_space(8.0);
+            ui.add_space(sizes.item_spacing);
             ui.horizontal(|ui| {
                 ui.heading("🔐 Password Manager");
                 
@@ -154,12 +234,12 @@ impl eframe::App for PasswordManagerApp {
                     }
                 });
             });
-            ui.add_space(4.0);
+            ui.add_space(sizes.item_spacing / 2.0);
         });
 
         if !self.message.is_empty() {
             egui::TopBottomPanel::bottom("messages").show(ctx, |ui| {
-                ui.add_space(8.0);
+                ui.add_space(sizes.item_spacing);
                 ui.horizontal(|ui| {
                     let icon = match self.message_color {
                         egui::Color32::RED => "❌",
@@ -169,70 +249,71 @@ impl eframe::App for PasswordManagerApp {
                     };
                     ui.colored_label(self.message_color, format!("{} {}", icon, &self.message));
                 });
-                ui.add_space(8.0);
+                ui.add_space(sizes.item_spacing);
             });
         }
 
         egui::CentralPanel::default().show(ctx, |ui| {
-            ui.add_space(20.0);
+            ui.add_space(sizes.frame_margin);
             
             match self.state {
-                AppState::Registration => self.show_registration(ui),
-                AppState::Login => self.show_login(ui),
-                AppState::Main => self.show_main(ctx, ui),
+                AppState::Registration => self.show_registration(ui, &sizes),
+                AppState::Login => self.show_login(ui, &sizes),
+                AppState::Main => self.show_main(ctx, ui, &sizes),
             }
         });
     }
 }
 
 impl PasswordManagerApp {
-    fn show_registration(&mut self, ui: &mut egui::Ui) {
+    fn show_registration(&mut self, ui: &mut egui::Ui, sizes: &ResponsiveSizes) {
         ui.vertical_centered(|ui| {
-            ui.add_space(40.0);
+            ui.add_space(sizes.frame_margin * 2.0);
             
             ui.heading("Benvenuto!");
-            ui.add_space(10.0);
+            ui.add_space(sizes.item_spacing);
             ui.label("Crea il tuo account per iniziare a gestire le tue password in sicurezza.");
-            ui.add_space(30.0);
+            ui.add_space(sizes.frame_margin * 1.5);
             
             egui::Frame::new()
                 .fill(ui.visuals().faint_bg_color)
-                .corner_radius(8.0)
-                .inner_margin(20.0)
+                .corner_radius(sizes.item_spacing)
+                .inner_margin(sizes.frame_margin)
                 .show(ui, |ui| {
-                    ui.set_max_width(400.0);
+                    ui.set_max_width(sizes.panel_width * 1.5);
                     
                     ui.vertical_centered_justified(|ui| {
                         ui.label("📝 Registrazione");
-                        ui.add_space(15.0);
+                        ui.add_space(sizes.frame_margin * 0.75);
                         
                         egui::Grid::new("reg_grid")
                             .num_columns(2)
-                            .spacing([10.0, 12.0])
+                            .spacing([sizes.item_spacing, sizes.item_spacing * 1.5])
                             .show(ui, |ui| {
                                 ui.label("👤 Username:");
                                 ui.add(egui::TextEdit::singleline(&mut self.reg_username)
-                                    .desired_width(200.0));
+                                    .desired_width(sizes.text_field_width));
                                 ui.end_row();
                                 
                                 ui.label("🔑 Password:");
                                 ui.add(egui::TextEdit::singleline(&mut self.reg_password)
                                     .password(true)
-                                    .desired_width(200.0));
+                                    .desired_width(sizes.text_field_width));
                                 ui.end_row();
                                 
                                 ui.label("🔑 Conferma:");
                                 ui.add(egui::TextEdit::singleline(&mut self.reg_confirm_password)
                                     .password(true)
-                                    .desired_width(200.0));
+                                    .desired_width(sizes.text_field_width));
                                 ui.end_row();
                             });
                         
-                        ui.add_space(15.0);
+                        ui.add_space(sizes.frame_margin * 0.75);
                         ui.small("💡 La password deve essere di almeno 6 caratteri");
-                        ui.add_space(15.0);
+                        ui.add_space(sizes.frame_margin * 0.75);
                         
-                        if ui.add_sized([120.0, 35.0], egui::Button::new("Registrati")).clicked() {
+                        if ui.add_sized([sizes.text_field_width * 0.6, sizes.button_height], 
+                            egui::Button::new("Registrati")).clicked() {
                             self.handle_registration();
                         }
                     });
@@ -240,45 +321,46 @@ impl PasswordManagerApp {
         });
     }
     
-    fn show_login(&mut self, ui: &mut egui::Ui) {
+    fn show_login(&mut self, ui: &mut egui::Ui, sizes: &ResponsiveSizes) {
         ui.vertical_centered(|ui| {
-            ui.add_space(60.0);
+            ui.add_space(sizes.frame_margin * 3.0);
             
             ui.heading("Bentornato!");
-            ui.add_space(10.0);
+            ui.add_space(sizes.item_spacing);
             ui.label("Inserisci le tue credenziali per accedere.");
-            ui.add_space(40.0);
+            ui.add_space(sizes.frame_margin * 2.0);
             
             egui::Frame::new()
                 .fill(ui.visuals().faint_bg_color)
-                .corner_radius(8.0)
-                .inner_margin(20.0)
+                .corner_radius(sizes.item_spacing)
+                .inner_margin(sizes.frame_margin)
                 .show(ui, |ui| {
-                    ui.set_max_width(400.0);
+                    ui.set_max_width(sizes.panel_width * 1.5);
                     
                     ui.vertical_centered_justified(|ui| {
                         ui.label("🔓 Accesso");
-                        ui.add_space(15.0);
+                        ui.add_space(sizes.frame_margin * 0.75);
                         
                         egui::Grid::new("login_grid")
                             .num_columns(2)
-                            .spacing([10.0, 15.0])
+                            .spacing([sizes.item_spacing, sizes.item_spacing * 1.875])
                             .show(ui, |ui| {
                                 ui.label("👤 Username:");
                                 ui.add(egui::TextEdit::singleline(&mut self.login_username)
-                                    .desired_width(200.0));
+                                    .desired_width(sizes.text_field_width));
                                 ui.end_row();
                                 
                                 ui.label("🔑 Password:");
                                 ui.add(egui::TextEdit::singleline(&mut self.login_password)
                                     .password(true)
-                                    .desired_width(200.0));
+                                    .desired_width(sizes.text_field_width));
                                 ui.end_row();
                             });
                         
-                        ui.add_space(20.0);
+                        ui.add_space(sizes.frame_margin);
                         
-                        if ui.add_sized([100.0, 35.0], egui::Button::new("Accedi")).clicked() {
+                        if ui.add_sized([sizes.text_field_width * 0.5, sizes.button_height], 
+                            egui::Button::new("Accedi")).clicked() {
                             self.handle_login();
                         }
                     });
@@ -286,95 +368,95 @@ impl PasswordManagerApp {
         });
     }
     
-    fn show_main(&mut self, ctx: &egui::Context, ui: &mut egui::Ui) {
+    fn show_main(&mut self, ctx: &egui::Context, ui: &mut egui::Ui, sizes: &ResponsiveSizes) {
         ui.allocate_ui_with_layout(
             ui.available_size(),
             egui::Layout::left_to_right(egui::Align::TOP),
             |ui| {
                 // Pannello a sinistra
                 ui.vertical(|ui| {
-                    ui.set_min_width(360.0);
-                    ui.set_max_width(360.0);
+                    ui.set_min_width(sizes.panel_width);
+                    ui.set_max_width(sizes.panel_width);
                     
                     // Sezione Aggiungi Password
                     egui::Frame::new()
                         .fill(ui.visuals().faint_bg_color)
-                        .corner_radius(8.0)
-                        .inner_margin(20.0)
+                        .corner_radius(sizes.item_spacing)
+                        .inner_margin(sizes.frame_margin)
                         .show(ui, |ui| {
                             ui.vertical(|ui| {
                                 ui.strong("➕ Aggiungi Password");
-                                ui.add_space(15.0);
+                                ui.add_space(sizes.frame_margin * 0.75);
 
                                 ui.vertical(|ui| {
                                     ui.label("🏷 Nome servizio");
                                     ui.add(egui::TextEdit::singleline(&mut self.new_entry_name)
                                         .hint_text("es. Gmail, Facebook...")
-                                        .min_size(egui::vec2(230.0, 25.0)));
-                                    ui.add_space(10.0);
+                                        .min_size(egui::vec2(sizes.text_field_width, sizes.button_height * 0.71)));
+                                    ui.add_space(sizes.item_spacing);
                                     
                                     ui.label("👤 Username");
                                     ui.add(egui::TextEdit::singleline(&mut self.new_entry_username)
                                         .hint_text("username o email")
-                                        .min_size(egui::vec2(230.0, 25.0)));
-                                    ui.add_space(10.0);
+                                        .min_size(egui::vec2(sizes.text_field_width, sizes.button_height * 0.71)));
+                                    ui.add_space(sizes.item_spacing);
                                     
                                     ui.label("🔑 Password");
                                     ui.add(egui::TextEdit::singleline(&mut self.new_entry_password)
                                         .password(true)
                                         .hint_text("password sicura")
-                                        .min_size(egui::vec2(230.0, 25.0)));
-                                    ui.add_space(15.0);
+                                        .min_size(egui::vec2(sizes.text_field_width, sizes.button_height * 0.71)));
+                                    ui.add_space(sizes.frame_margin * 0.75);
                                 });
                                 
-                                if ui.add_sized([230.0, 35.0], 
+                                if ui.add_sized([sizes.text_field_width, sizes.button_height], 
                                     egui::Button::new("💾 Salva Password")).clicked() {
                                     self.add_password();
                                 }
                             });
                         });
                     
-                    ui.add_space(15.0);
+                    ui.add_space(sizes.frame_margin * 0.75);
                     
                     // Sezione Modifica Password
                     egui::Frame::new()
                         .fill(ui.visuals().faint_bg_color)
-                        .corner_radius(8.0)
-                        .inner_margin(20.0)
+                        .corner_radius(sizes.item_spacing)
+                        .inner_margin(sizes.frame_margin)
                         .show(ui, |ui| {
                             ui.vertical(|ui| {
                                 ui.strong("⚙ Modifica Password");
-                                ui.add_space(15.0);
+                                ui.add_space(sizes.frame_margin * 0.75);
 
                                 ui.vertical(|ui| {
                                     ui.label("🎯 Servizio da modificare");
                                     ui.add(egui::TextEdit::singleline(&mut self.edit_service_name)
                                         .hint_text("Nome del servizio esistente")
-                                        .min_size(egui::vec2(230.0, 25.0)));
-                                    ui.add_space(10.0);
+                                        .min_size(egui::vec2(sizes.text_field_width, sizes.button_height * 0.71)));
+                                    ui.add_space(sizes.item_spacing);
                                     
                                     ui.label("👤 Nuovo username (opzionale)");
                                     ui.add(egui::TextEdit::singleline(&mut self.edit_new_username)
                                         .hint_text("Lascia vuoto per non modificare")
-                                        .min_size(egui::vec2(230.0, 25.0)));
-                                    ui.add_space(10.0);
+                                        .min_size(egui::vec2(sizes.text_field_width, sizes.button_height * 0.71)));
+                                    ui.add_space(sizes.item_spacing);
                                     
                                     ui.label("🔑 Nuova password");
                                     ui.add(egui::TextEdit::singleline(&mut self.edit_new_password)
                                         .password(true)
                                         .hint_text("Nuova password sicura")
-                                        .min_size(egui::vec2(230.0, 25.0)));
-                                    ui.add_space(10.0);
+                                        .min_size(egui::vec2(sizes.text_field_width, sizes.button_height * 0.71)));
+                                    ui.add_space(sizes.item_spacing);
                                     
                                     ui.label("🔑 Conferma password");
                                     ui.add(egui::TextEdit::singleline(&mut self.edit_confirm_password)
                                         .password(true)
                                         .hint_text("Ripeti la nuova password")
-                                        .min_size(egui::vec2(230.0, 25.0)));
-                                    ui.add_space(15.0);
+                                        .min_size(egui::vec2(sizes.text_field_width, sizes.button_height * 0.71)));
+                                    ui.add_space(sizes.frame_margin * 0.75);
                                 });
                                 
-                                if ui.add_sized([230.0, 35.0], 
+                                if ui.add_sized([sizes.text_field_width, sizes.button_height], 
                                     egui::Button::new("🔄 Modifica Password")).clicked() {
                                     self.edit_password();
                                 }
@@ -396,11 +478,11 @@ impl PasswordManagerApp {
                             }
                             ui.add(egui::TextEdit::singleline(&mut self.search_query)
                                 .hint_text("🔍 Cerca...")
-                                .desired_width(150.0));
+                                .desired_width(sizes.text_field_width * 0.65));
                         });
                     });
                     
-                    ui.add_space(10.0);
+                    ui.add_space(sizes.item_spacing);
                     
                     let filtered_entries: Vec<(usize, &PasswordEntry)> = self.app_data.ps
                         .iter()
@@ -417,7 +499,7 @@ impl PasswordManagerApp {
                     
                     if !self.search_query.is_empty() && !filtered_entries.is_empty() {
                         ui.small(format!("🎯 {} risultati trovati", filtered_entries.len()));
-                        ui.add_space(5.0);
+                        ui.add_space(sizes.item_spacing * 0.625);
                     }
                     
                     let remaining_space = ui.available_size();
@@ -453,8 +535,8 @@ impl PasswordManagerApp {
                                 for (index, entry_clone) in entries_to_show {
                                     egui::Frame::new()
                                         .fill(ui.visuals().window_fill)
-                                        .corner_radius(6.0)
-                                        .inner_margin(12.0)
+                                        .corner_radius(sizes.item_spacing * 0.75)
+                                        .inner_margin(sizes.frame_margin * 0.6)
                                         .stroke(egui::Stroke::new(1.0, ui.visuals().widgets.noninteractive.bg_stroke.color))
                                         .show(ui, |ui| {
                                             ui.horizontal(|ui| {
@@ -540,7 +622,7 @@ impl PasswordManagerApp {
                                             });
                                         });
                                     
-                                    ui.add_space(8.0);
+                                    ui.add_space(sizes.item_spacing);
                                 }
                             });
                         
