@@ -310,6 +310,7 @@ impl PasswordManagerApp {
                     
                     // Contenuto scrollabile
                     egui::ScrollArea::vertical()
+                        .id_salt("left_panel_scroll")
                         .auto_shrink([false, true])
                         .show(ui, |ui| {
                             match self.active_tab {
@@ -329,88 +330,92 @@ impl PasswordManagerApp {
     }
     
     fn show_add_password_panel(&mut self, ui: &mut egui::Ui) {
-        egui::Frame::new()
-            .fill(ui.visuals().faint_bg_color)
-            .corner_radius(8.0)
-            .inner_margin(20.0)
-            .show(ui, |ui| {
-                ui.vertical(|ui| {
-                    ui.strong("➕ Aggiungi Password");
-                    ui.add_space(15.0);
-
+        ui.push_id("add_password_panel", |ui| {
+            egui::Frame::new()
+                .fill(ui.visuals().faint_bg_color)
+                .corner_radius(8.0)
+                .inner_margin(20.0)
+                .show(ui, |ui| {
                     ui.vertical(|ui| {
-                        ui.label("🏷 Nome servizio");
-                        ui.add(egui::TextEdit::singleline(&mut self.new_entry_name)
-                            .hint_text("es. Gmail, Facebook...")
-                            .min_size(egui::vec2(230.0, 25.0)));
-                        ui.add_space(10.0);
-                        
-                        ui.label("👤 Username");
-                        ui.add(egui::TextEdit::singleline(&mut self.new_entry_username)
-                            .hint_text("username o email")
-                            .min_size(egui::vec2(230.0, 25.0)));
-                        ui.add_space(10.0);
-                        
-                        ui.label("🔑 Password");
-                        ui.add(egui::TextEdit::singleline(&mut self.new_entry_password)
-                            .password(true)
-                            .hint_text("password sicura")
-                            .min_size(egui::vec2(230.0, 25.0)));
+                        ui.strong("➕ Aggiungi Password");
                         ui.add_space(15.0);
+
+                        ui.vertical(|ui| {
+                            ui.label("🏷 Nome servizio");
+                            ui.add(egui::TextEdit::singleline(&mut self.new_entry_name)
+                                .hint_text("es. Gmail, Facebook...")
+                                .min_size(egui::vec2(230.0, 25.0)));
+                            ui.add_space(10.0);
+                            
+                            ui.label("👤 Username");
+                            ui.add(egui::TextEdit::singleline(&mut self.new_entry_username)
+                                .hint_text("username o email")
+                                .min_size(egui::vec2(230.0, 25.0)));
+                            ui.add_space(10.0);
+                            
+                            ui.label("🔑 Password");
+                            ui.add(egui::TextEdit::singleline(&mut self.new_entry_password)
+                                .password(true)
+                                .hint_text("password sicura")
+                                .min_size(egui::vec2(230.0, 25.0)));
+                            ui.add_space(15.0);
+                        });
+                        
+                        if ui.add_sized([230.0, 35.0], 
+                            egui::Button::new("💾 Salva Password")).clicked() {
+                            self.add_password();
+                        }
                     });
-                    
-                    if ui.add_sized([230.0, 35.0], 
-                        egui::Button::new("💾 Salva Password")).clicked() {
-                        self.add_password();
-                    }
                 });
-            });
+        });
     }
     
     fn show_edit_password_panel(&mut self, ui: &mut egui::Ui) {
-        egui::Frame::new()
-            .fill(ui.visuals().faint_bg_color)
-            .corner_radius(8.0)
-            .inner_margin(20.0)
-            .show(ui, |ui| {
-                ui.vertical(|ui| {
-                    ui.strong("⚙ Modifica Password");
-                    ui.add_space(15.0);
-
+        ui.push_id("edit_password_panel", |ui| {
+            egui::Frame::new()
+                .fill(ui.visuals().faint_bg_color)
+                .corner_radius(8.0)
+                .inner_margin(20.0)
+                .show(ui, |ui| {
                     ui.vertical(|ui| {
-                        ui.label("🎯 Servizio da modificare");
-                        ui.add(egui::TextEdit::singleline(&mut self.edit_service_name)
-                            .hint_text("Nome del servizio esistente")
-                            .min_size(egui::vec2(230.0, 25.0)));
-                        ui.add_space(10.0);
-                        
-                        ui.label("👤 Nuovo username (opzionale)");
-                        ui.add(egui::TextEdit::singleline(&mut self.edit_new_username)
-                            .hint_text("Lascia vuoto per non modificare")
-                            .min_size(egui::vec2(230.0, 25.0)));
-                        ui.add_space(10.0);
-                        
-                        ui.label("🔑 Nuova password");
-                        ui.add(egui::TextEdit::singleline(&mut self.edit_new_password)
-                            .password(true)
-                            .hint_text("Nuova password sicura")
-                            .min_size(egui::vec2(230.0, 25.0)));
-                        ui.add_space(10.0);
-                        
-                        ui.label("🔑 Conferma password");
-                        ui.add(egui::TextEdit::singleline(&mut self.edit_confirm_password)
-                            .password(true)
-                            .hint_text("Ripeti la nuova password")
-                            .min_size(egui::vec2(230.0, 25.0)));
+                        ui.strong("⚙ Modifica Password");
                         ui.add_space(15.0);
+
+                        ui.vertical(|ui| {
+                            ui.label("🎯 Servizio da modificare");
+                            ui.add(egui::TextEdit::singleline(&mut self.edit_service_name)
+                                .hint_text("Nome del servizio esistente")
+                                .min_size(egui::vec2(230.0, 25.0)));
+                            ui.add_space(10.0);
+                            
+                            ui.label("👤 Nuovo username (opzionale)");
+                            ui.add(egui::TextEdit::singleline(&mut self.edit_new_username)
+                                .hint_text("Lascia vuoto per non modificare")
+                                .min_size(egui::vec2(230.0, 25.0)));
+                            ui.add_space(10.0);
+                            
+                            ui.label("🔑 Nuova password");
+                            ui.add(egui::TextEdit::singleline(&mut self.edit_new_password)
+                                .password(true)
+                                .hint_text("Nuova password sicura")
+                                .min_size(egui::vec2(230.0, 25.0)));
+                            ui.add_space(10.0);
+                            
+                            ui.label("🔑 Conferma password");
+                            ui.add(egui::TextEdit::singleline(&mut self.edit_confirm_password)
+                                .password(true)
+                                .hint_text("Ripeti la nuova password")
+                                .min_size(egui::vec2(230.0, 25.0)));
+                            ui.add_space(15.0);
+                        });
+                        
+                        if ui.add_sized([230.0, 35.0], 
+                            egui::Button::new("🔄 Modifica Password")).clicked() {
+                            self.edit_password();
+                        }
                     });
-                    
-                    if ui.add_sized([230.0, 35.0], 
-                        egui::Button::new("🔄 Modifica Password")).clicked() {
-                        self.edit_password();
-                    }
                 });
-            });
+        });
     }
     
     fn show_password_list(&mut self, ctx: &egui::Context, ui: &mut egui::Ui) {
@@ -473,99 +478,102 @@ impl PasswordManagerApp {
                 
                 // Sezione mostra password
                 egui::ScrollArea::vertical()
+                    .id_salt("password_list_scroll")
                     .auto_shrink([false, false])
                     .min_scrolled_height(remaining_space.y)
                     .max_height(remaining_space.y)
                     .show(ui, |ui| {
                         for (index, entry_clone) in entries_to_show {
-                            egui::Frame::new()
-                                .fill(ui.visuals().window_fill)
-                                .corner_radius(6.0)
-                                .inner_margin(12.0)
-                                .stroke(egui::Stroke::new(1.0, ui.visuals().widgets.noninteractive.bg_stroke.color))
-                                .show(ui, |ui| {
-                                    ui.horizontal(|ui| {
-                                        ui.vertical(|ui| {
-                                            ui.horizontal(|ui| {
-                                                ui.strong(&entry_clone.name);
-                                                ui.label("•");
-                                                ui.weak(&entry_clone.u);
+                            ui.push_id(format!("password_entry_{}", index), |ui| {
+                                egui::Frame::new()
+                                    .fill(ui.visuals().window_fill)
+                                    .corner_radius(6.0)
+                                    .inner_margin(12.0)
+                                    .stroke(egui::Stroke::new(1.0, ui.visuals().widgets.noninteractive.bg_stroke.color))
+                                    .show(ui, |ui| {
+                                        ui.horizontal(|ui| {
+                                            ui.vertical(|ui| {
+                                                ui.horizontal(|ui| {
+                                                    ui.strong(&entry_clone.name);
+                                                    ui.label("•");
+                                                    ui.weak(&entry_clone.u);
+                                                });
+                                                
+                                                if let Some((password, start_time)) = self.shown_passwords.get(&index) {
+                                                    let remaining_time = 10 - start_time.elapsed().as_secs();
+                                                    ui.horizontal(|ui| {
+                                                        ui.colored_label(egui::Color32::YELLOW, format!("🔓 {}", password));
+                                                        ui.small(format!("({}s)", remaining_time));
+                                                    });
+                                                } else {
+                                                    if let Some(key) = &self.encryption_key {
+                                                        match decrypt_password(&entry_clone, key) {
+                                                            Ok(_) => {
+                                                                ui.small("🔒 Password protetta");
+                                                            }
+                                                            Err(_) => {
+                                                                ui.colored_label(egui::Color32::RED, "⚠ Errore decrittografia");
+                                                            }
+                                                        }
+                                                    } else {
+                                                        ui.colored_label(egui::Color32::RED, "⚠ Chiave non disponibile");
+                                                    }
+                                                }
                                             });
                                             
-                                            if let Some((password, start_time)) = self.shown_passwords.get(&index) {
-                                                let remaining_time = 10 - start_time.elapsed().as_secs();
-                                                ui.horizontal(|ui| {
-                                                    ui.colored_label(egui::Color32::YELLOW, format!("🔓 {}", password));
-                                                    ui.small(format!("({}s)", remaining_time));
-                                                });
-                                            } else {
-                                                if let Some(key) = &self.encryption_key {
-                                                    match decrypt_password(&entry_clone, key) {
-                                                        Ok(_) => {
-                                                            ui.small("🔒 Password protetta");
-                                                        }
-                                                        Err(_) => {
-                                                            ui.colored_label(egui::Color32::RED, "⚠ Errore decrittografia");
-                                                        }
-                                                    }
-                                                } else {
-                                                    ui.colored_label(egui::Color32::RED, "⚠ Chiave non disponibile");
-                                                }
-                                            }
-                                        });
-                                        
-                                        ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                                            ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
 
-                                            if ui.button("🗑").on_hover_text("Elimina").clicked() {
-                                                if confirm_notification() {
-                                                    remove_indices.push(index);
-                                                }
-                                            }
-                                            
-                                            if ui.button("🔓").on_hover_text("Mostra Password").clicked() {
-                                                if let Some(key) = &self.encryption_key {
-                                                    match decrypt_password(&entry_clone, key) {
-                                                        Ok(decrypted_password) => {
-                                                            self.shown_passwords.insert(index, (decrypted_password, Instant::now()));
-                                                        }
-                                                        Err(_) => {
-                                                            self.message = "Errore nella decrittografia!".to_string();
-                                                            self.message_color = egui::Color32::RED;
-                                                        }
+                                                if ui.button("🗑").on_hover_text("Elimina").clicked() {
+                                                    if confirm_notification() {
+                                                        remove_indices.push(index);
                                                     }
-                                                } else {
-                                                    self.message = "Chiave di crittografia non disponibile!".to_string();
-                                                    self.message_color = egui::Color32::RED;
                                                 }
-                                            }
+                                                
+                                                if ui.button("🔓").on_hover_text("Mostra Password").clicked() {
+                                                    if let Some(key) = &self.encryption_key {
+                                                        match decrypt_password(&entry_clone, key) {
+                                                            Ok(decrypted_password) => {
+                                                                self.shown_passwords.insert(index, (decrypted_password, Instant::now()));
+                                                            }
+                                                            Err(_) => {
+                                                                self.message = "Errore nella decrittografia!".to_string();
+                                                                self.message_color = egui::Color32::RED;
+                                                            }
+                                                        }
+                                                    } else {
+                                                        self.message = "Chiave di crittografia non disponibile!".to_string();
+                                                        self.message_color = egui::Color32::RED;
+                                                    }
+                                                }
 
-                                            if ui.button("📋").on_hover_text("Copia password").clicked() {
-                                                if let Some(key) = &self.encryption_key {
-                                                    match decrypt_password(&entry_clone, key) {
-                                                        Ok(decrypted_password) => {
-                                                            ctx.copy_text(decrypted_password);
-                                                            self.message = format!("La password di '{}' è stata copiata!", entry_clone.name);
-                                                            self.message_color = egui::Color32::GREEN;
+                                                if ui.button("📋").on_hover_text("Copia password").clicked() {
+                                                    if let Some(key) = &self.encryption_key {
+                                                        match decrypt_password(&entry_clone, key) {
+                                                            Ok(decrypted_password) => {
+                                                                ctx.copy_text(decrypted_password);
+                                                                self.message = format!("La password di '{}' è stata copiata!", entry_clone.name);
+                                                                self.message_color = egui::Color32::GREEN;
+                                                            }
+                                                            Err(_) => {
+                                                                self.message = "Errore nella decrittografia!".to_string();
+                                                                self.message_color = egui::Color32::RED;
+                                                            }
                                                         }
-                                                        Err(_) => {
-                                                            self.message = "Errore nella decrittografia!".to_string();
-                                                            self.message_color = egui::Color32::RED;
-                                                        }
+                                                    } else {
+                                                        self.message = "Chiave di crittografia non disponibile!".to_string();
+                                                        self.message_color = egui::Color32::RED;
                                                     }
-                                                } else {
-                                                    self.message = "Chiave di crittografia non disponibile!".to_string();
-                                                    self.message_color = egui::Color32::RED;
                                                 }
-                                            }
-                                            
-                                            if ui.button("👤").on_hover_text("Copia username").clicked() {
-                                                ctx.copy_text(entry_clone.u.clone());
-                                                self.message = format!("L'username di '{}' è stato copiato!", entry_clone.name);
-                                                self.message_color = egui::Color32::GREEN;
-                                            }
+                                                
+                                                if ui.button("👤").on_hover_text("Copia username").clicked() {
+                                                    ctx.copy_text(entry_clone.u.clone());
+                                                    self.message = format!("L'username di '{}' è stato copiato!", entry_clone.name);
+                                                    self.message_color = egui::Color32::GREEN;
+                                                }
+                                            });
                                         });
                                     });
-                                });
+                            });
                             
                             ui.add_space(8.0);
                         }
