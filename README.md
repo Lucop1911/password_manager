@@ -15,7 +15,7 @@ sudo mv password_manager /usr/local/bin/
 ```
 
 **Windows:**
-Download `password_manager.exe` and add it to your PATH.
+Download `password_manager.exe`.
 
 ### Build from Source
 
