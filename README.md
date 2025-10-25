@@ -1,4 +1,4 @@
-# CLI Search Tool
+# Password Manager
 
 A fast and secure password manager built with Rust.
 
