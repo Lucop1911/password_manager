@@ -148,10 +148,18 @@ impl eframe::App for PasswordManagerApp {
                         self.toggle_theme();
                     }
                     
-                    if self.state == AppState::Main {
+                    if self.state == AppState::Login || self.state == AppState::Login {
                         ui.separator();
                         if ui.button("🚪 Exit").clicked() {
+                            ctx.send_viewport_cmd(egui::ViewportCommand::Close);
+                        }
+                    }
+
+                    if self.state == AppState::Main {
+                        ui.separator();
+                        if ui.button("🚪 Log out").clicked() {
                             self.logout();
+                            return;
                         }
                         ui.label(format!("👤 {}", 
                             self.current_user.as_ref().unwrap().u));

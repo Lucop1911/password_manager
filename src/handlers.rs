@@ -190,7 +190,7 @@ impl PasswordManagerApp {
         self.encryption_key = None;
         self.shown_passwords.clear();
         self.state = AppState::Login;
-        self.message = "Logout effettuato.".to_string();
-        self.message_color = egui::Color32::BLUE;
+        self.message = "Logout effettuato con successo.".to_string();
+        self.message_color = egui::Color32::CYAN;
     }
 }
