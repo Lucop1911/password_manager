@@ -1,8 +1,6 @@
 name: Build and Sign Windows + Linux
 
 on:
-  push:
-    branches: [master]
   workflow_dispatch:
 
 jobs:
@@ -101,7 +99,6 @@ jobs:
     name: Create GitHub Release
     needs: [build-windows, build-linux]
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/master'
     permissions:
       contents: write
     steps:
