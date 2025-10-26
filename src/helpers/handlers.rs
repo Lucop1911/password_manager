@@ -1,4 +1,4 @@
-use crate::utils::{generate_salt, hash_password, derive_key, encrypt_password, save_data, UserData, PasswordEntry};
+use crate::helpers::utils::{generate_salt, hash_password, derive_key, encrypt_password, save_data, UserData, PasswordEntry};
 use crate::{PasswordManagerApp, AppState};
 use eframe::egui;
 

@@ -1,10 +1,10 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-mod utils;
-mod handlers;
+mod helpers;
+mod pages;
 
 use eframe::egui;
-use utils::{UserData, PasswordEntry, AppData, load_data, decrypt_password, save_data, confirm_notification};
+use crate::helpers::utils::{UserData, PasswordEntry, AppData, load_data};
 use std::time::{Duration, Instant};
 use std::collections::HashMap;
 
@@ -55,9 +55,12 @@ pub struct PasswordManagerApp {
     
     // Mostra password temporaneamente (indice -> (password, tempo_inizio))
     pub shown_passwords: HashMap<usize, (String, Instant)>,
-    
+
     // Tab attivo (0 = Aggiungi, 1 = Modifica)
     pub active_tab: usize,
+
+    pub show_password: bool,
+    pub show_password1: bool,
 }
 
 impl Default for PasswordManagerApp {
@@ -94,6 +97,8 @@ impl Default for PasswordManagerApp {
             search_query: String::new(),
             shown_passwords: HashMap::new(),
             active_tab: 0,
+            show_password: false,
+            show_password1: false,
         }
     }
 }
@@ -115,11 +120,59 @@ impl eframe::App for PasswordManagerApp {
         // Richiedo il refresh ogni secondo per aggiornare i timer
         ctx.request_repaint_after(Duration::from_secs(1));
         
-        // Cambia tema
+        // Temi
         if self.dark_mode {
-            ctx.set_visuals(egui::Visuals::dark());
+            let mut visuals = egui::Visuals::dark();
+            // Dark theme improvements
+            visuals.window_fill = egui::Color32::from_rgb(20, 20, 25);
+            visuals.panel_fill = egui::Color32::from_rgb(25, 25, 30);
+            visuals.faint_bg_color = egui::Color32::from_rgb(35, 35, 42);
+            visuals.extreme_bg_color = egui::Color32::from_rgb(15, 15, 18);
+            
+            // Widget colors
+            visuals.widgets.noninteractive.bg_fill = egui::Color32::from_rgb(40, 40, 48);
+            visuals.widgets.inactive.bg_fill = egui::Color32::from_rgb(50, 50, 60);
+            visuals.widgets.hovered.bg_fill = egui::Color32::from_rgb(60, 60, 72);
+            visuals.widgets.active.bg_fill = egui::Color32::from_rgb(70, 70, 85);
+            
+            // Text colors
+            visuals.widgets.noninteractive.fg_stroke.color = egui::Color32::from_rgb(200, 200, 210);
+            visuals.widgets.inactive.fg_stroke.color = egui::Color32::from_rgb(220, 220, 230);
+            visuals.widgets.hovered.fg_stroke.color = egui::Color32::from_rgb(240, 240, 250);
+            visuals.widgets.active.fg_stroke.color = egui::Color32::WHITE;
+            
+            ctx.set_visuals(visuals);
         } else {
-            ctx.set_visuals(egui::Visuals::light());
+            let mut visuals = egui::Visuals::light();
+            // Light theme improvements - much better contrast
+            visuals.window_fill = egui::Color32::from_rgb(250, 250, 252);
+            visuals.panel_fill = egui::Color32::from_rgb(245, 245, 248);
+            visuals.faint_bg_color = egui::Color32::from_rgb(235, 235, 240);
+            visuals.extreme_bg_color = egui::Color32::WHITE;
+            
+            // Widget colors with better contrast
+            visuals.widgets.noninteractive.bg_fill = egui::Color32::from_rgb(240, 240, 245);
+            visuals.widgets.noninteractive.weak_bg_fill = egui::Color32::from_rgb(245, 245, 250);
+            visuals.widgets.inactive.bg_fill = egui::Color32::from_rgb(225, 225, 235);
+            visuals.widgets.hovered.bg_fill = egui::Color32::from_rgb(210, 210, 225);
+            visuals.widgets.active.bg_fill = egui::Color32::from_rgb(190, 190, 210);
+            
+            // Text colors - dark text on light background
+            visuals.widgets.noninteractive.fg_stroke.color = egui::Color32::from_rgb(40, 40, 50);
+            visuals.widgets.inactive.fg_stroke.color = egui::Color32::from_rgb(30, 30, 40);
+            visuals.widgets.hovered.fg_stroke.color = egui::Color32::from_rgb(20, 20, 30);
+            visuals.widgets.active.fg_stroke.color = egui::Color32::from_rgb(10, 10, 20);
+            
+            // Stroke colors for borders
+            visuals.widgets.noninteractive.bg_stroke.color = egui::Color32::from_rgb(200, 200, 210);
+            visuals.widgets.inactive.bg_stroke.color = egui::Color32::from_rgb(180, 180, 195);
+            visuals.widgets.hovered.bg_stroke.color = egui::Color32::from_rgb(160, 160, 180);
+            visuals.widgets.active.bg_stroke.color = egui::Color32::from_rgb(140, 140, 165);
+            
+            // Override text color globally
+            visuals.override_text_color = Some(egui::Color32::from_rgb(25, 25, 35));
+            
+            ctx.set_visuals(visuals);
         }
 
         let mut style = (*ctx.style()).clone();
@@ -158,6 +211,8 @@ impl eframe::App for PasswordManagerApp {
                     if self.state == AppState::Main {
                         ui.separator();
                         if ui.button("🚪 Log out").clicked() {
+                            self.show_password = false;
+                            self.show_password1 = false;
                             self.logout();
                             return;
                         }
@@ -197,425 +252,7 @@ impl eframe::App for PasswordManagerApp {
     }
 }
 
-impl PasswordManagerApp {
-    fn show_registration(&mut self, ui: &mut egui::Ui) {
-        ui.vertical_centered(|ui| {
-            ui.add_space(40.0);
-            
-            ui.heading("Benvenuto!");
-            ui.add_space(10.0);
-            ui.label("Crea il tuo account per iniziare a gestire le tue password in sicurezza.");
-            ui.add_space(30.0);
-            
-            egui::Frame::new()
-                .fill(ui.visuals().faint_bg_color)
-                .corner_radius(8.0)
-                .inner_margin(20.0)
-                .show(ui, |ui| {
-                    ui.set_max_width(400.0);
-                    
-                    ui.vertical_centered_justified(|ui| {
-                        ui.label("📝 Registrazione");
-                        ui.add_space(15.0);
-                        
-                        egui::Grid::new("reg_grid")
-                            .num_columns(2)
-                            .spacing([10.0, 12.0])
-                            .show(ui, |ui| {
-                                ui.label("👤 Username:");
-                                ui.add(egui::TextEdit::singleline(&mut self.reg_username)
-                                    .desired_width(200.0));
-                                ui.end_row();
-                                
-                                ui.label("🔑 Password:");
-                                ui.add(egui::TextEdit::singleline(&mut self.reg_password)
-                                    .password(true)
-                                    .desired_width(200.0));
-                                ui.end_row();
-                                
-                                ui.label("🔑 Conferma:");
-                                ui.add(egui::TextEdit::singleline(&mut self.reg_confirm_password)
-                                    .password(true)
-                                    .desired_width(200.0));
-                                ui.end_row();
-                            });
-                        
-                        ui.add_space(15.0);
-                        ui.small("💡 La password deve essere di almeno 6 caratteri");
-                        ui.add_space(15.0);
-                        
-                        if ui.add_sized([120.0, 35.0], egui::Button::new("Registrati")).clicked() {
-                            self.handle_registration();
-                        }
-                    });
-                });
-        });
-    }
-    
-    fn show_login(&mut self, ui: &mut egui::Ui) {
-        ui.vertical_centered(|ui| {
-            ui.add_space(60.0);
-            
-            ui.heading("Bentornato!");
-            ui.add_space(10.0);
-            ui.label("Inserisci le tue credenziali per accedere.");
-            ui.add_space(40.0);
-            
-            egui::Frame::new()
-                .fill(ui.visuals().faint_bg_color)
-                .corner_radius(8.0)
-                .inner_margin(20.0)
-                .show(ui, |ui| {
-                    ui.set_max_width(400.0);
-                    
-                    ui.vertical_centered_justified(|ui| {
-                        ui.label("🔓 Accesso");
-                        ui.add_space(15.0);
-                        
-                        egui::Grid::new("login_grid")
-                            .num_columns(2)
-                            .spacing([10.0, 15.0])
-                            .show(ui, |ui| {
-                                ui.label("👤 Username:");
-                                ui.add(egui::TextEdit::singleline(&mut self.login_username)
-                                    .desired_width(200.0));
-                                ui.end_row();
-                                
-                                ui.label("🔑 Password:");
-                                ui.add(egui::TextEdit::singleline(&mut self.login_password)
-                                    .password(true)
-                                    .desired_width(200.0));
-                                ui.end_row();
-                            });
-                        
-                        ui.add_space(20.0);
-                        
-                        if ui.add_sized([100.0, 35.0], egui::Button::new("Accedi")).clicked() {
-                            self.handle_login();
-                        }
-                    });
-                });
-        });
-    }
-    
-    fn show_main(&mut self, ctx: &egui::Context, ui: &mut egui::Ui) {
-        ui.allocate_ui_with_layout(
-            ui.available_size(),
-            egui::Layout::left_to_right(egui::Align::TOP),
-            |ui| {
-                // Pannello a sinistra con tabs
-                ui.vertical(|ui| {
-                    ui.set_min_width(360.0);
-                    ui.set_max_width(360.0);
-                    
-                    // Tab selector
-                    ui.horizontal(|ui| {
-                        ui.selectable_value(&mut self.active_tab, 0, "➕ Aggiungi");
-                        ui.selectable_value(&mut self.active_tab, 1, "⚙ Modifica");
-                    });
-                    
-                    ui.add_space(10.0);
-                    
-                    // Contenuto scrollabile
-                    egui::ScrollArea::vertical()
-                        .id_salt("left_panel_scroll")
-                        .auto_shrink([false, true])
-                        .show(ui, |ui| {
-                            match self.active_tab {
-                                0 => self.show_add_password_panel(ui),
-                                1 => self.show_edit_password_panel(ui),
-                                _ => {}
-                            }
-                        });
-                });
-                
-                ui.separator();
-                
-                // Pannello a destra (lista password)
-                self.show_password_list(ctx, ui);
-            }
-        );
-    }
-    
-    fn show_add_password_panel(&mut self, ui: &mut egui::Ui) {
-        ui.push_id("add_password_panel", |ui| {
-            egui::Frame::new()
-                .fill(ui.visuals().faint_bg_color)
-                .corner_radius(8.0)
-                .inner_margin(20.0)
-                .show(ui, |ui| {
-                    ui.vertical(|ui| {
-                        ui.strong("➕ Aggiungi Password");
-                        ui.add_space(15.0);
 
-                        ui.vertical(|ui| {
-                            ui.label("🏷 Nome servizio");
-                            ui.add(egui::TextEdit::singleline(&mut self.new_entry_name)
-                                .hint_text("es. Gmail, Facebook...")
-                                .min_size(egui::vec2(230.0, 25.0)));
-                            ui.add_space(10.0);
-                            
-                            ui.label("👤 Username");
-                            ui.add(egui::TextEdit::singleline(&mut self.new_entry_username)
-                                .hint_text("username o email")
-                                .min_size(egui::vec2(230.0, 25.0)));
-                            ui.add_space(10.0);
-                            
-                            ui.label("🔑 Password");
-                            ui.add(egui::TextEdit::singleline(&mut self.new_entry_password)
-                                .password(true)
-                                .hint_text("password sicura")
-                                .min_size(egui::vec2(230.0, 25.0)));
-                            ui.add_space(15.0);
-                        });
-                        
-                        if ui.add_sized([230.0, 35.0], 
-                            egui::Button::new("💾 Salva Password")).clicked() {
-                            self.add_password();
-                        }
-                    });
-                });
-        });
-    }
-    
-    fn show_edit_password_panel(&mut self, ui: &mut egui::Ui) {
-        ui.push_id("edit_password_panel", |ui| {
-            egui::Frame::new()
-                .fill(ui.visuals().faint_bg_color)
-                .corner_radius(8.0)
-                .inner_margin(20.0)
-                .show(ui, |ui| {
-                    ui.vertical(|ui| {
-                        ui.strong("⚙ Modifica Password");
-                        ui.add_space(15.0);
-
-                        ui.vertical(|ui| {
-                            ui.label("🎯 Servizio da modificare");
-                            ui.add(egui::TextEdit::singleline(&mut self.edit_service_name)
-                                .hint_text("Nome del servizio esistente")
-                                .min_size(egui::vec2(230.0, 25.0)));
-                            ui.add_space(10.0);
-                            
-                            ui.label("👤 Nuovo username (opzionale)");
-                            ui.add(egui::TextEdit::singleline(&mut self.edit_new_username)
-                                .hint_text("Lascia vuoto per non modificare")
-                                .min_size(egui::vec2(230.0, 25.0)));
-                            ui.add_space(10.0);
-                            
-                            ui.label("🔑 Nuova password");
-                            ui.add(egui::TextEdit::singleline(&mut self.edit_new_password)
-                                .password(true)
-                                .hint_text("Nuova password sicura")
-                                .min_size(egui::vec2(230.0, 25.0)));
-                            ui.add_space(10.0);
-                            
-                            ui.label("🔑 Conferma password");
-                            ui.add(egui::TextEdit::singleline(&mut self.edit_confirm_password)
-                                .password(true)
-                                .hint_text("Ripeti la nuova password")
-                                .min_size(egui::vec2(230.0, 25.0)));
-                            ui.add_space(15.0);
-                        });
-                        
-                        if ui.add_sized([230.0, 35.0], 
-                            egui::Button::new("🔄 Modifica Password")).clicked() {
-                            self.edit_password();
-                        }
-                    });
-                });
-        });
-    }
-    
-    fn show_password_list(&mut self, ctx: &egui::Context, ui: &mut egui::Ui) {
-        ui.vertical(|ui| {
-            ui.horizontal(|ui| {
-                ui.strong("📃 Le tue Password");
-                ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                    if ui.button("❌").on_hover_text("Cancella ricerca").clicked() {
-                        self.search_query.clear();
-                    }
-                    ui.add(egui::TextEdit::singleline(&mut self.search_query)
-                        .hint_text("🔍 Cerca...")
-                        .desired_width(150.0));
-                });
-            });
-            
-            ui.add_space(10.0);
-            
-            let filtered_entries: Vec<(usize, &PasswordEntry)> = self.app_data.ps
-                .iter()
-                .enumerate()
-                .filter(|(_, entry)| {
-                    if self.search_query.is_empty() {
-                        true
-                    } else {
-                        entry.name.to_lowercase().contains(&self.search_query.to_lowercase()) ||
-                        entry.u.to_lowercase().contains(&self.search_query.to_lowercase())
-                    }
-                })
-                .collect();
-            
-            if !self.search_query.is_empty() && !filtered_entries.is_empty() {
-                ui.small(format!("🎯 {} risultati trovati", filtered_entries.len()));
-                ui.add_space(5.0);
-            }
-            
-            let remaining_space = ui.available_size();
-            
-            if filtered_entries.is_empty() {
-                ui.allocate_ui_with_layout(
-                    remaining_space,
-                    egui::Layout::centered_and_justified(egui::Direction::TopDown),
-                    |ui| {
-                        if self.search_query.is_empty() {
-                            ui.label("📭 Nessuna password salvata");
-                            ui.small("Aggiungi la tua prima password usando il pannello a sinistra");
-                        } else {
-                            ui.label("🔍 Nessun risultato");
-                            ui.small(format!("Nessuna password trovata per '{}'", self.search_query));
-                        }
-                    }
-                );
-            } else {
-                let mut remove_indices = Vec::new();
-                
-                let entries_to_show: Vec<(usize, PasswordEntry)> = filtered_entries
-                    .into_iter()
-                    .map(|(index, entry)| (index, entry.clone()))
-                    .collect();
-                
-                // Sezione mostra password
-                egui::ScrollArea::vertical()
-                    .id_salt("password_list_scroll")
-                    .auto_shrink([false, false])
-                    .min_scrolled_height(remaining_space.y)
-                    .max_height(remaining_space.y)
-                    .show(ui, |ui| {
-                        for (index, entry_clone) in entries_to_show {
-                            ui.push_id(format!("password_entry_{}", index), |ui| {
-                                egui::Frame::new()
-                                    .fill(ui.visuals().window_fill)
-                                    .corner_radius(6.0)
-                                    .inner_margin(12.0)
-                                    .stroke(egui::Stroke::new(1.0, ui.visuals().widgets.noninteractive.bg_stroke.color))
-                                    .show(ui, |ui| {
-                                        ui.horizontal(|ui| {
-                                            ui.vertical(|ui| {
-                                                ui.horizontal(|ui| {
-                                                    ui.strong(&entry_clone.name);
-                                                    ui.label("•");
-                                                    ui.weak(&entry_clone.u);
-                                                });
-                                                
-                                                if let Some((password, start_time)) = self.shown_passwords.get(&index) {
-                                                    let remaining_time = 10 - start_time.elapsed().as_secs();
-                                                    ui.horizontal(|ui| {
-                                                        ui.colored_label(egui::Color32::YELLOW, format!("🔓 {}", password));
-                                                        ui.small(format!("({}s)", remaining_time));
-                                                    });
-                                                } else {
-                                                    if let Some(key) = &self.encryption_key {
-                                                        match decrypt_password(&entry_clone, key) {
-                                                            Ok(_) => {
-                                                                ui.small("🔒 Password protetta");
-                                                            }
-                                                            Err(_) => {
-                                                                ui.colored_label(egui::Color32::RED, "⚠ Errore decrittografia");
-                                                            }
-                                                        }
-                                                    } else {
-                                                        ui.colored_label(egui::Color32::RED, "⚠ Chiave non disponibile");
-                                                    }
-                                                }
-                                            });
-                                            
-                                            ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-
-                                                if ui.button("🗑").on_hover_text("Elimina").clicked() {
-                                                    if confirm_notification() {
-                                                        remove_indices.push(index);
-                                                    }
-                                                }
-                                                
-                                                if ui.button("🔓").on_hover_text("Mostra Password").clicked() {
-                                                    if let Some(key) = &self.encryption_key {
-                                                        match decrypt_password(&entry_clone, key) {
-                                                            Ok(decrypted_password) => {
-                                                                self.shown_passwords.insert(index, (decrypted_password, Instant::now()));
-                                                            }
-                                                            Err(_) => {
-                                                                self.message = "Errore nella decrittografia!".to_string();
-                                                                self.message_color = egui::Color32::RED;
-                                                            }
-                                                        }
-                                                    } else {
-                                                        self.message = "Chiave di crittografia non disponibile!".to_string();
-                                                        self.message_color = egui::Color32::RED;
-                                                    }
-                                                }
-
-                                                if ui.button("📋").on_hover_text("Copia password").clicked() {
-                                                    if let Some(key) = &self.encryption_key {
-                                                        match decrypt_password(&entry_clone, key) {
-                                                            Ok(decrypted_password) => {
-                                                                ctx.copy_text(decrypted_password);
-                                                                self.message = format!("La password di '{}' è stata copiata!", entry_clone.name);
-                                                                self.message_color = egui::Color32::GREEN;
-                                                            }
-                                                            Err(_) => {
-                                                                self.message = "Errore nella decrittografia!".to_string();
-                                                                self.message_color = egui::Color32::RED;
-                                                            }
-                                                        }
-                                                    } else {
-                                                        self.message = "Chiave di crittografia non disponibile!".to_string();
-                                                        self.message_color = egui::Color32::RED;
-                                                    }
-                                                }
-                                                
-                                                if ui.button("👤").on_hover_text("Copia username").clicked() {
-                                                    ctx.copy_text(entry_clone.u.clone());
-                                                    self.message = format!("L'username di '{}' è stato copiato!", entry_clone.name);
-                                                    self.message_color = egui::Color32::GREEN;
-                                                }
-                                            });
-                                        });
-                                    });
-                            });
-                            
-                            ui.add_space(8.0);
-                        }
-                    });
-                
-                // Rimuovi password
-                if !remove_indices.is_empty() {
-                    
-                    remove_indices.sort_by(|a, b| b.cmp(a));
-                    
-                    let mut removed_names = Vec::new();
-                    for &index in &remove_indices {
-                        if index < self.app_data.ps.len() {
-                            let removed_entry = self.app_data.ps.remove(index);
-                            removed_names.push(removed_entry.name);
-                            // Rimuovi anche dalle password mostrate se presente
-                            self.shown_passwords.remove(&index);
-                        }
-                    }
-                    
-                    if !removed_names.is_empty() {
-                        save_data(&self.app_data);
-                        if removed_names.len() == 1 {
-                            self.message = format!("La password di '{}' è stata eliminata!", removed_names[0]);
-                        } else {
-                            self.message = format!("{} password eliminate!", removed_names.len());
-                        }
-                        self.message_color = egui::Color32::RED;
-                    }
-                }
-            }
-        });
-    }
-}
 
 fn main() -> Result<(), eframe::Error> {
     let options = eframe::NativeOptions {
