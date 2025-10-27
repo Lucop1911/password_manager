@@ -64,7 +64,6 @@ pub struct PasswordManagerApp {
 
     pub show_popup_add: bool,
     pub show_popup_edit: bool,
-    pub show_popup_reg: bool,
 }
 
 impl Default for PasswordManagerApp {
@@ -105,7 +104,6 @@ impl Default for PasswordManagerApp {
             show_password1: false,
             show_popup_add: false,
             show_popup_edit: false,
-            show_popup_reg: false,
         }
     }
 }
