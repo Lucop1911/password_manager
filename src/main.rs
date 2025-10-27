@@ -59,9 +59,11 @@ pub struct PasswordManagerApp {
     // Tab attivo (0 = Aggiungi, 1 = Modifica)
     pub active_tab: usize,
 
+    // Booleans per i checkbox mostra password
     pub show_password: bool,
     pub show_password1: bool,
 
+    // Booleans per i popup
     pub show_popup_add: bool,
     pub show_popup_edit: bool,
 }
