@@ -8,25 +8,24 @@ license = "MIT"
 repository = "https://github.com/Lucop1911/password_manager"
 
 [dependencies]
-eframe = "0.31.1"
-egui = "0.31.1"
-serde = { version = "1.0", features = ["derive"] }
-serde_json = "1.0"
-sha2 = "0.10"
-base64 = "0.22"
-rand = "0.9.1"
-aes-gcm = "0.10"
+eframe = "0.35.0"
+egui = "0.35.0"
+serde = { version = "1.0.229", features = ["derive"] }
+serde_json = "1.0.151"
+sha2 = "0.11.0"
+base64 = "0.23.0"
+rand = "0.9.5"
+aes-gcm = "0.11.0"
 argon2 = "0.5"
-rfd = "0.15.3"
+rfd = "0.17.2"
 dirs = "6.0.0"
+rusqlite = {version = "0.40.1", features = ["bundled-sqlcipher"]}
 
 [target.'cfg(windows)'.build-dependencies]
 winres = "0.1"
 
 [profile.release]
 opt-level = "s"
-lto = true
-codegen-units = 1
 panic = "abort"
 strip = true
 debug = false

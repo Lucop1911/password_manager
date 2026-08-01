@@ -11,41 +11,42 @@ impl PasswordManagerApp {
                 .inner_margin(20.0)
                 .show(ui, |ui| {
                     ui.vertical(|ui| {
-                        ui.strong("⚙ Modifica Password");
+                        ui.strong("⚙ Edit Password");
                         ui.add_space(15.0);
 
                         ui.vertical(|ui| {
-                            ui.label("🎯 Servizio da modificare");
+                            ui.label("🎯 Service to edit");
                             ui.add(
                                 egui::TextEdit::singleline(&mut self.edit_service_name)
-                                    .hint_text("Nome del servizio esistente")
+                                    .hint_text("Name of the existing service")
                                     .min_size(egui::vec2(230.0, 25.0)),
                             );
                             ui.add_space(10.0);
 
-                            ui.label("👤 Nuovo username (opzionale)");
+                            ui.label("👤 New username (optional)");
                             ui.add(
                                 egui::TextEdit::singleline(&mut self.edit_new_username)
-                                    .hint_text("Lascia vuoto per non modificare")
+                                    .hint_text("Leave empty to keep current")
                                     .min_size(egui::vec2(230.0, 25.0)),
                             );
                             ui.add_space(10.0);
 
-                            ui.label("🔑 Nuova password");
+                            ui.label("🔑 New password");
                             
                             let password_response = ui.add(
                                 egui::TextEdit::singleline(&mut self.edit_new_password)
                                     .password(!self.show_password)
-                                    .hint_text("Nuova password sicura")
+                                    .hint_text("New strong password")
                                     .min_size(egui::vec2(230.0, 25.0)),
                             );
                             
-                            // Quando il field password è vuoto e prende il focus mostra il popup
+                            // Offer a generated-password popup when the new
+                            // password field is empty and gains focus
                             if password_response.gained_focus() && self.edit_new_password.is_empty() {
                                 self.show_popup_edit = true;
                             }
                             
-                            // Suggerisci password
+                            // Password suggestion popup
                             if self.show_popup_edit {
                                 let popup_id = ui.make_persistent_id("password_gen_popup_edit");
                                 egui::Area::new(popup_id)
@@ -55,18 +56,18 @@ impl PasswordManagerApp {
                                             .show(ui, |ui| {
                                                 ui.set_min_width(230.0);
                                                 ui.vertical(|ui| {
-                                                    ui.label("🎲 Vuoi generare una password sicura?");
+                                                    ui.label("🎲 Generate a strong password?");
                                                     ui.add_space(8.0);
                                                     
                                                     ui.horizontal(|ui| {
-                                                        if ui.button("✅ Genera").clicked() {
+                                                        if ui.button("✅ Generate").clicked() {
                                                             let p = generate_password();
                                                             self.edit_new_password = p.clone();
                                                             self.edit_confirm_password = p;
                                                             self.show_popup_edit = false;
                                                         }
                                                         
-                                                        if ui.button("❌ No grazie").clicked() {
+                                                        if ui.button("❌ No thanks").clicked() {
                                                             self.show_popup_edit = false;
                                                         }
                                                     });
@@ -75,6 +76,8 @@ impl PasswordManagerApp {
                                     });
                             }
                             
+                            // Dismiss the popup when clicking anywhere
+                            // outside the field or the popup itself
                             if self.show_popup_edit && ui.input(|i| i.pointer.any_click()) {
                                 let popup_id = ui.make_persistent_id("password_gen_popup_edit");
                                 if let Some(area_response) = ui.ctx().memory(|mem| {
@@ -88,22 +91,22 @@ impl PasswordManagerApp {
                                 }
                             }
 
-                            ui.checkbox(&mut self.show_password, "Mostra");
+                            ui.checkbox(&mut self.show_password, "Show");
                             ui.add_space(10.0);
 
-                            ui.label("🔑 Conferma password");
+                            ui.label("🔑 Confirm password");
                             ui.add(
                                 egui::TextEdit::singleline(&mut self.edit_confirm_password)
                                     .password(!self.show_password1)
-                                    .hint_text("Ripeti la nuova password")
+                                    .hint_text("Repeat the new password")
                                     .min_size(egui::vec2(230.0, 25.0)),
                             );
-                            ui.checkbox(&mut self.show_password1, "Mostra");
+                            ui.checkbox(&mut self.show_password1, "Show");
                             ui.add_space(15.0);
                         });
 
                         if ui
-                            .add_sized([230.0, 35.0], egui::Button::new("🔄 Modifica Password"))
+                            .add_sized([230.0, 35.0], egui::Button::new("🔄 Update Password"))
                             .clicked()
                         {
                             self.show_password = false;

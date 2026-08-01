@@ -11,14 +11,14 @@ impl PasswordManagerApp {
                 .inner_margin(20.0)
                 .show(ui, |ui| {
                     ui.vertical(|ui| {
-                        ui.strong("➕ Aggiungi Password");
+                        ui.strong("➕ Add Password");
                         ui.add_space(15.0);
 
                         ui.vertical(|ui| {
-                            ui.label("🏷 Nome servizio");
+                            ui.label("🏷 Service name");
                             ui.add(
                                 egui::TextEdit::singleline(&mut self.new_entry_name)
-                                    .hint_text("es. Gmail, Facebook...")
+                                    .hint_text("e.g. Gmail, Facebook...")
                                     .min_size(egui::vec2(230.0, 25.0)),
                             );
                             ui.add_space(10.0);
@@ -26,7 +26,7 @@ impl PasswordManagerApp {
                             ui.label("👤 Username");
                             ui.add(
                                 egui::TextEdit::singleline(&mut self.new_entry_username)
-                                    .hint_text("username o email")
+                                    .hint_text("username or email")
                                     .min_size(egui::vec2(230.0, 25.0)),
                             );
                             ui.add_space(10.0);
@@ -36,16 +36,17 @@ impl PasswordManagerApp {
                             let password_response = ui.add(
                                 egui::TextEdit::singleline(&mut self.new_entry_password)
                                     .password(!self.show_password)
-                                    .hint_text("password sicura")
+                                    .hint_text("strong password")
                                     .min_size(egui::vec2(230.0, 25.0)),
                             );
                             
-                            // Quando il field password è vuoto e prende il focus mostra il popup
+                            // When the password field is empty and gains
+                            // focus, offer a generated-password popup
                             if password_response.gained_focus() && self.new_entry_password.is_empty() {
                                 self.show_popup_add = true;
                             }
                             
-                            // Suggerisci password pupup
+                            // Password suggestion popup
                             if self.show_popup_add {
                                 let popup_id = ui.make_persistent_id("password_gen_popup_add");
                                 egui::Area::new(popup_id)
@@ -55,16 +56,16 @@ impl PasswordManagerApp {
                                             .show(ui, |ui| {
                                                 ui.set_min_width(230.0);
                                                 ui.vertical(|ui| {
-                                                    ui.label("🎲 Vuoi generare una password sicura?");
+                                                    ui.label("🎲 Generate a strong password?");
                                                     ui.add_space(8.0);
                                                     
                                                     ui.horizontal(|ui| {
-                                                        if ui.button("✅ Genera").clicked() {
+                                                        if ui.button("✅ Generate").clicked() {
                                                             self.new_entry_password = generate_password();
                                                             self.show_popup_add = false;
                                                         }
                                                         
-                                                        if ui.button("❌ No grazie").clicked() {
+                                                        if ui.button("❌ No thanks").clicked() {
                                                             self.show_popup_add = false;
                                                         }
                                                     });
@@ -73,7 +74,8 @@ impl PasswordManagerApp {
                                     });
                             }
                             
-                            // Chiudo il suggerimentro quando avviene un click fuori dal field password
+                            // Dismiss the popup when clicking anywhere
+                            // outside the field or the popup itself
                             if self.show_popup_add && ui.input(|i| i.pointer.any_click()) {
                                 let popup_id = ui.make_persistent_id("password_gen_popup_add");
                                 if let Some(area_response) = ui.ctx().memory(|mem| {
@@ -87,12 +89,12 @@ impl PasswordManagerApp {
                                 }
                             }
                             
-                            ui.checkbox(&mut self.show_password, "Mostra");
+                            ui.checkbox(&mut self.show_password, "Show");
                             ui.add_space(15.0);
                         });
 
                         if ui
-                            .add_sized([230.0, 35.0], egui::Button::new("💾 Salva Password"))
+                            .add_sized([230.0, 35.0], egui::Button::new("💾 Save Password"))
                             .clicked()
                         {
                             self.show_password = false;

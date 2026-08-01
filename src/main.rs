@@ -3,15 +3,21 @@
 mod helpers;
 mod pages;
 
-use crate::helpers::utils::{AppData, PasswordEntry, UserData, load_data};
+use crate::helpers::db::database::Database;
+use crate::helpers::db::keyfile::Keyfile;
+use crate::helpers::db::migration;
+use crate::helpers::utils::{PasswordEntry, UserData};
 use eframe::egui;
 use std::collections::HashMap;
 use std::time::{Duration, Instant};
 
+/// App lifecycle: a keyfile in the data directory marks the presence of an
+/// account; a leftover `data.json` triggers the one-time migration flow.
 #[derive(PartialEq)]
 pub enum AppState {
     Registration,
     Login,
+    Migration,
     Main,
 }
 
@@ -26,10 +32,20 @@ pub struct PasswordManagerApp {
     pub login_username: String,
     pub login_password: String,
 
-    // Dati dell'app
-    pub app_data: AppData,
-    pub current_user: Option<UserData>,
+    // Background login: the Argon2id derivation runs on a worker thread so
+    // the UI can show a spinner instead of freezing
+    pub login_busy: bool,
+    pub login_rx: Option<std::sync::mpsc::Receiver<Result<crate::helpers::handlers::LoginResult, String>>>,
 
+    // Campo per la migrazione dal vecchio formato
+    pub migration_password: String,
+
+    // Session state: the DB connection stays open only while logged in
+    pub db: Option<Database>,
+    pub current_user: Option<UserData>,
+    pub ps: Vec<PasswordEntry>,
+
+    // Master-password-derived AES key, kept in memory for the session only
     pub encryption_key: Option<[u8; 32]>,
 
     // Campi per aggiungere password
@@ -53,8 +69,8 @@ pub struct PasswordManagerApp {
     // Ricerca
     pub search_query: String,
 
-    // Mostra password temporaneamente (indice -> (password, tempo_inizio))
-    pub shown_passwords: HashMap<usize, (String, Instant)>,
+    // Mostra password temporaneamente (id -> (password, tempo_inizio))
+    pub shown_passwords: HashMap<i64, (String, Instant)>,
 
     // Tab attivo (0 = Aggiungi, 1 = Modifica)
     pub active_tab: usize,
@@ -70,14 +86,21 @@ pub struct PasswordManagerApp {
 
 impl Default for PasswordManagerApp {
     fn default() -> Self {
-        let app_data = load_data();
-        let state = if app_data.user.is_some() {
-            AppState::Login
-        } else {
-            AppState::Registration
-        };
+        // Bootstrap: keyfile present -> account exists; legacy data.json
+        // present (without keyfile) -> offer migration; otherwise register.
+        let keyfile = Keyfile::load().ok().flatten();
+        let legacy = migration::legacy_exists();
 
-        let dark_mode = app_data.dark_mode.unwrap_or(true);
+        let (state, dark_mode) = if let Some(keyfile) = &keyfile {
+            (AppState::Login, keyfile.dark_mode)
+        } else if legacy && migration::legacy_has_account() {
+            (AppState::Migration, true)
+        } else {
+            if legacy {
+                let _ = migration::remove_legacy();
+            }
+            (AppState::Registration, true)
+        };
 
         Self {
             state,
@@ -86,8 +109,12 @@ impl Default for PasswordManagerApp {
             reg_confirm_password: String::new(),
             login_username: String::new(),
             login_password: String::new(),
-            app_data,
+            login_busy: false,
+            login_rx: None,
+            migration_password: String::new(),
+            db: None,
             current_user: None,
+            ps: Vec::new(),
             encryption_key: None,
             new_entry_name: String::new(),
             new_entry_username: String::new(),
@@ -111,11 +138,13 @@ impl Default for PasswordManagerApp {
 }
 
 impl eframe::App for PasswordManagerApp {
-    fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
-        
-        // Pulizia delle password mostrate dopo 10 secondi
+    fn ui(&mut self, ui: &mut egui::Ui, _frame: &mut eframe::Frame) {
+        let ctx = ui.ctx().clone();
+
+        // Revealed passwords expire after 10 seconds; keep repainting
+        // while any reveal is still pending so the countdown stays fresh.
         let now = Instant::now();
-        let expired_keys: Vec<usize> = self
+        let expired_keys: Vec<i64> = self
             .shown_passwords
             .iter()
             .filter(|(_, (_, start_time))| {
@@ -127,15 +156,18 @@ impl eframe::App for PasswordManagerApp {
         for key in expired_keys {
             self.shown_passwords.remove(&key);
         }
-
-        // Per migliorare la performance e possibili bug:
-        // 1: Aggiorno la GUI solo se sono nella pagina Main
-        // 2: Aggiorno la GUI solo se non ci sono password "scoperte" e quindi non devo tenere il timer aggiornato
         if !self.shown_passwords.is_empty() && self.state == AppState::Main {
             ctx.request_repaint_after(Duration::from_secs(1));
         }
 
         // Temi
+        let theme = if self.dark_mode {
+            egui::Theme::Dark
+        } else {
+            egui::Theme::Light
+        };
+        ctx.set_theme(theme);
+
         if self.dark_mode {
             let mut visuals = egui::Visuals::dark();
             // Dark theme improvements
@@ -156,7 +188,7 @@ impl eframe::App for PasswordManagerApp {
             visuals.widgets.hovered.fg_stroke.color = egui::Color32::from_rgb(240, 240, 250);
             visuals.widgets.active.fg_stroke.color = egui::Color32::WHITE;
 
-            ctx.set_visuals(visuals);
+            ctx.set_visuals_of(theme, visuals);
         } else {
             let mut visuals = egui::Visuals::light();
             // Light theme improvements - much better contrast
@@ -187,10 +219,10 @@ impl eframe::App for PasswordManagerApp {
             // Override text color globally
             visuals.override_text_color = Some(egui::Color32::from_rgb(25, 25, 35));
 
-            ctx.set_visuals(visuals);
+            ctx.set_visuals_of(theme, visuals);
         }
 
-        let mut style = (*ctx.style()).clone();
+        let mut style = (*ctx.style_of(theme)).clone();
         style.spacing.item_spacing = egui::vec2(8.0, 10.0);
         style.spacing.button_padding = egui::vec2(12.0, 8.0);
         style.spacing.indent = 20.0;
@@ -217,9 +249,9 @@ impl eframe::App for PasswordManagerApp {
             ),
         ]
         .into();
-        ctx.set_style(style);
+        ctx.set_style_of(theme, style);
 
-        egui::TopBottomPanel::top("header").show(ctx, |ui| {
+        egui::Panel::top("header").show(ui, |ui| {
             ui.add_space(8.0);
             ui.horizontal(|ui| {
                 ui.heading("🔐 Password Manager");
@@ -227,11 +259,14 @@ impl eframe::App for PasswordManagerApp {
                 ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                     let theme_text = if self.dark_mode { "🌙" } else { "☀" };
 
-                    if ui.button(theme_text).on_hover_text("Cambia tema").clicked() {
+                    if ui.button(theme_text).on_hover_text("Toggle theme").clicked() {
                         self.toggle_theme();
                     }
 
-                    if self.state == AppState::Login || self.state == AppState::Login {
+                    if self.state == AppState::Registration
+                        || self.state == AppState::Login
+                        || self.state == AppState::Migration
+                    {
                         ui.separator();
                         if ui.button("🚪 Exit").clicked() {
                             ctx.send_viewport_cmd(egui::ViewportCommand::Close);
@@ -254,7 +289,7 @@ impl eframe::App for PasswordManagerApp {
         });
 
         if !self.message.is_empty() {
-            egui::TopBottomPanel::bottom("messages").show(ctx, |ui| {
+            egui::Panel::bottom("messages").show(ui, |ui| {
                 ui.add_space(8.0);
                 ui.horizontal(|ui| {
                     let icon = match self.message_color {
@@ -269,13 +304,14 @@ impl eframe::App for PasswordManagerApp {
             });
         }
 
-        egui::CentralPanel::default().show(ctx, |ui| {
+        egui::CentralPanel::default().show(ui, |ui| {
             ui.add_space(20.0);
 
             match self.state {
                 AppState::Registration => self.show_registration(ui),
                 AppState::Login => self.show_login(ui),
-                AppState::Main => self.show_main(ctx, ui),
+                AppState::Migration => self.show_migration(ui),
+                AppState::Main => self.show_main(&ctx, ui),
             }
         });
     }

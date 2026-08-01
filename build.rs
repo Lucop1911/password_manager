@@ -1,3 +1,5 @@
+// Embeds the app icon and version metadata into the Windows executable
+// resources at build time (no-op on other platforms).
 #[cfg(windows)]
 fn main() {
     let mut res = winres::WindowsResource::new();

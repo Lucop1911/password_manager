@@ -6,9 +6,9 @@ impl PasswordManagerApp {
         ui.vertical_centered(|ui| {
             ui.add_space(40.0);
             
-            ui.heading("Benvenuto!");
+            ui.heading("Welcome!");
             ui.add_space(10.0);
-            ui.label("Crea il tuo account per iniziare a gestire le tue password in sicurezza.");
+            ui.label("Create your account to start managing your passwords securely.");
             ui.add_space(30.0);
             
             egui::Frame::new()
@@ -19,7 +19,7 @@ impl PasswordManagerApp {
                     ui.set_max_width(400.0);
                     
                     ui.vertical_centered_justified(|ui| {
-                        ui.label("📝 Registrazione");
+                        ui.label("📝 Registration");
                         ui.add_space(15.0);
                         
                         egui::Grid::new("reg_grid")
@@ -31,26 +31,28 @@ impl PasswordManagerApp {
                                     .desired_width(200.0));
                                 ui.end_row();
                                 
+                                // Both password fields stay masked; the "Show"
+                                // checkboxes let the user preview what they typed
                                 ui.label("🔑 Password:");
                                 ui.add(egui::TextEdit::singleline(&mut self.reg_password)
                                     .password(!self.show_password)
                                     .desired_width(200.0));
-                                ui.checkbox(&mut self.show_password, "Mostra");
+                                ui.checkbox(&mut self.show_password, "Show");
                                 ui.end_row();
                                 
-                                ui.label("🔑 Conferma:");
+                                ui.label("🔑 Confirm:");
                                 ui.add(egui::TextEdit::singleline(&mut self.reg_confirm_password)
                                     .password(!self.show_password1)
                                     .desired_width(200.0));
-                                ui.checkbox(&mut self.show_password1, "Mostra");
+                                ui.checkbox(&mut self.show_password1, "Show");
                                 ui.end_row();
                             });
                         
                         ui.add_space(15.0);
-                        ui.small("💡 La password deve essere di almeno 6 caratteri");
+                        ui.small("💡 Password must be at least 6 characters");
                         ui.add_space(15.0);
                         
-                        if ui.add_sized([120.0, 35.0], egui::Button::new("Registrati")).clicked() {
+                        if ui.add_sized([120.0, 35.0], egui::Button::new("Sign Up")).clicked() {
                             self.show_password = false;
                             self.show_password1 = false;
                             self.handle_registration();
